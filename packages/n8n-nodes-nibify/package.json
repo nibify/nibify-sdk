@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-nibify",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Placeholder. The Nibify community node for n8n — send an interactive request to a human and wait for the answer. Not yet functional.",
   "license": "MIT",
   "author": "Nibify",

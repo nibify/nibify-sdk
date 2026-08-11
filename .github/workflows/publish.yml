@@ -5,8 +5,20 @@
 # Provenance needs `id-token: write` here, a public repo, and a `repository` field in
 # package.json that points back at this repo — all three, or npm rejects the attestation.
 #
-# `--provenance` and `--access public` are not passed on the command line: each package
-# sets them in `publishConfig`, so a local `npm publish` behaves the same way.
+# Auth is trusted publishing (OIDC): there is no npm token anywhere. Two consequences
+# that are easy to get wrong:
+#
+#   - `setup-node` must NOT be given `registry-url`. It writes an .npmrc pointing at
+#     NODE_AUTH_TOKEN, and npm then fails with ENEEDAUTH instead of falling back to
+#     OIDC (npm/documentation#1960).
+#   - The trusted publisher on npmjs is matched by workflow *filename*. Renaming this
+#     file breaks publishing, silently, until someone reads the auth error.
+#
+# Each package's `publishConfig` carries `access: public` and `provenance: true`, so a
+# local `npm publish` behaves the same way — minus the provenance, which needs CI.
+#
+# A package must exist on the registry before a trusted publisher can be configured for
+# it, so a brand-new name still needs one manual first publish (npm/cli#8544).
 #
 # Version bumps are manual for now. Issue #6 replaces this with the real pipeline once
 # the workspace exists.
@@ -40,10 +52,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1; the version bundled with Node is older
+      # often enough that pinning it here is cheaper than debugging an auth error.
+      - run: npm install -g npm@latest
 
       - name: Publish
         working-directory: ${{ inputs.package }}
         run: npm publish ${{ inputs.dry_run && '--dry-run' || '' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
