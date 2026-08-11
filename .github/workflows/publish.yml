@@ -1,0 +1,49 @@
+# Publish a package to npm from CI, with a provenance statement.
+#
+# Publishing from a laptop is not an option: the n8n verification guidelines require,
+# from 1 May 2026, that verified nodes are published by a GitHub Action with provenance.
+# Provenance needs `id-token: write` here, a public repo, and a `repository` field in
+# package.json that points back at this repo — all three, or npm rejects the attestation.
+#
+# `--provenance` and `--access public` are not passed on the command line: each package
+# sets them in `publishConfig`, so a local `npm publish` behaves the same way.
+#
+# Version bumps are manual for now. Issue #6 replaces this with the real pipeline once
+# the workspace exists.
+
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package directory to publish
+        required: true
+        type: choice
+        options:
+          - packages/n8n-nodes-nibify
+          - packages/sdk-ts
+      dry_run:
+        description: Dry run — pack and validate, publish nothing
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish
+        working-directory: ${{ inputs.package }}
+        run: npm publish ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

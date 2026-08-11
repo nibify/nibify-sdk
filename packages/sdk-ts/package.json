@@ -1,0 +1,28 @@
+{
+  "name": "@nibify/sdk",
+  "version": "0.0.1",
+  "description": "Placeholder. TypeScript SDK for Nibify — ask a human a question from your agent and wait for the answer. Not yet functional.",
+  "license": "MIT",
+  "author": "Nibify",
+  "homepage": "https://github.com/nibify/nibify-sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nibify/nibify-sdk.git",
+    "directory": "packages/sdk-ts"
+  },
+  "bugs": {
+    "url": "https://github.com/nibify/nibify-sdk/issues"
+  },
+  "keywords": [
+    "nibify",
+    "human-in-the-loop",
+    "agents"
+  ],
+  "files": [
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

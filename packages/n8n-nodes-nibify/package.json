@@ -1,0 +1,29 @@
+{
+  "name": "n8n-nodes-nibify",
+  "version": "0.0.1",
+  "description": "Placeholder. The Nibify community node for n8n — send an interactive request to a human and wait for the answer. Not yet functional.",
+  "license": "MIT",
+  "author": "Nibify",
+  "homepage": "https://github.com/nibify/nibify-sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nibify/nibify-sdk.git",
+    "directory": "packages/n8n-nodes-nibify"
+  },
+  "bugs": {
+    "url": "https://github.com/nibify/nibify-sdk/issues"
+  },
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "nibify",
+    "human-in-the-loop"
+  ],
+  "files": [
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
