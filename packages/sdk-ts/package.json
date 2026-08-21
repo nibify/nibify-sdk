@@ -21,8 +21,14 @@
   "files": [
     "README.md"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

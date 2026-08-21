@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["es2024"],
+
+    // `nodenext` rather than the NestJS starter's bare `commonjs`, which implies
+    // the `node10` resolver TypeScript 7 has already removed. The package's own
+    // `"type"` field decides the emitted format, so moving to the native
+    // compiler later is a version bump and not a config rewrite.
+    //
+    // `nodenext` and not `node16` because it models Node's `require()` of an ESM
+    // module, which is how this CommonJS package reaches `@nibify/catalog` —
+    // ESM-only, and the one place the catalog's validator is defined.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    // NestJS assigns injected properties through the constructor signature, which
+    // the compiler cannot see.
+    "strictPropertyInitialization": false,
+
+    // NestJS reads constructor parameter types at runtime to resolve providers.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "declaration": false
+  }
+}

@@ -1,0 +1,6 @@
+packages:
+  - 'packages/*'
+  # Not here yet. The catalog is written in the private repo — same path, same
+  # package name — so the move is a straight copy and this line is already right
+  # when it lands. A glob that matches nothing is not an error for pnpm.
+  - 'catalog'
