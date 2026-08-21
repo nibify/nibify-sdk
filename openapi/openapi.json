@@ -294,7 +294,7 @@
     },
     "/v1/requests/{id}": {
       "get": {
-        "description": "Returns the Request as it stands now, without waiting. The same body as `GET /v1/requests/{id}/response`: read `status` to tell a Response from an outcome without one, and `status: \"pending\"` — nobody has answered yet — from `expired`, where the Request timed out. Use the long poll instead when you intend to wait for the answer.",
+        "description": "Returns the Request as it stands now, without waiting. The same body as `GET /v1/requests/{id}/response`: read `status` to tell a Response from an outcome without one, and `status: \"pending\"` — nobody has answered yet — from `expired`, where the Request timed out. `deliveredAt` and `readAt` are the two receipts: a `pending` Request with both null never reached a phone, which is a different problem from one nobody has answered. Use the long poll instead when you intend to wait for the answer.",
         "operationId": "RequestsController_read",
         "parameters": [
           {
@@ -411,6 +411,74 @@
           }
         ],
         "summary": "Withdraw a Request",
+        "tags": [
+          "agent"
+        ]
+      }
+    },
+    "/v1/requests/{id}/nudge": {
+      "post": {
+        "description": "Fires the push for a Request that is still waiting, without creating a second Request and without touching its state — no `status`, no `sequence`, no timestamp changes. Distinct from withdrawing and re-sending, which produces a `cancelled` Request and a new one. It obeys the priority the Request was created with and the recipient's quiet hours exactly as the first push did, so a `normal` Request nudged at three in the morning does not ring. A Request that already reached a terminal state is a `409` naming that state, never a silent no-op.",
+        "operationId": "RequestsController_renotify",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The `requestId` returned when the Request was created.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The push was queued again. The Request is unchanged, and is returned as it stands.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestOutcomeDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable key, `api_key_revoked` for a revoked one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`request_not_found`. A Request belonging to another Project answers the same way as one that does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The Request is no longer pending, so there is nothing to re-notify — the code names which state it reached: `request_already_answered`, `request_already_expired`, `request_already_dismissed` or `request_already_cancelled`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Re-notify a pending Request",
         "tags": [
           "agent"
         ]
@@ -649,6 +717,305 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/webhook-endpoints": {
+      "get": {
+        "description": "Both halves in one list, oldest first — `environment` says which is which. The signing secret is not here and is not on these rows: one Project has one secret, and `GET /v1/projects` returns it. An endpoint that is `disabled` is not a destination at all: no delivery is attempted and none is queued.",
+        "operationId": "WebhookEndpointsController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "The Project whose endpoints these are.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The endpoints. An empty list is the ordinary answer for a Project nobody has configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointsDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`project_not_found`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "The standing subscriptions of a Project",
+        "tags": [
+          "dashboard"
+        ]
+      },
+      "post": {
+        "description": "The other half of the webhooks, and it does not replace the per-Request `callbackUrl` — ADR-0014 decided the two stand beside each other. A Request that carries a `callbackUrl` **and** matches a subscription here produces two deliveries of the same event, to the two addresses; delivery is at-least-once by PRD §4.1 and both carry the same `id` and the same `responseId`, so a receiver behind both deduplicates them exactly as it deduplicates a retry. Every delivery is signed with the Project’s `webhookSigningSecret` — the same one that signs a per-Request callback, because there is only one. The URL is checked before the row exists: `https` only, no credentials in the userinfo, and every address the hostname resolves to must be public.",
+        "operationId": "WebhookEndpointsController_create",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "The Project this endpoint belongs to.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookEndpointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The endpoint, as configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`project_not_found`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`webhook_endpoint_duplicate`. This half of the Project already subscribes that URL — a second row would deliver every event to it twice, for nothing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body` for a malformed body, `webhook_url_invalid` for a URL this server may not dial.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Subscribe an endpoint to events",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/webhook-endpoints/{endpointId}": {
+      "patch": {
+        "description": "`status: \"disabled\"` is how an endpoint is silenced without being forgotten — nothing is enqueued for it, so there is nothing to retry and nothing to dead-letter. `environment` is not editable: moving a subscription between the halves of a Project is a different subscription, not an edited address, and doing it in one step is how live events end up at a rehearsal endpoint.",
+        "operationId": "WebhookEndpointsController_update",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "The Project the endpoint belongs to.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpointId",
+            "required": true,
+            "in": "path",
+            "description": "The `id` of the endpoint.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookEndpointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The endpoint as it now stands.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`project_not_found`, or `webhook_endpoint_not_found`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`webhook_endpoint_duplicate`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`, or `webhook_url_invalid`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Change where an endpoint points, what it hears, or whether it hears",
+        "tags": [
+          "dashboard"
+        ]
+      },
+      "delete": {
+        "description": "The row is deleted rather than revoked, unlike an ApiKey: nothing points at an endpoint, so nothing loses its provenance. Deliveries already queued still go out — the job carries the URL it was created with — so a duplicate arriving just after a delete is the same at-least-once a receiver already deduplicates.",
+        "operationId": "WebhookEndpointsController_remove",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "The Project the endpoint belongs to.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpointId",
+            "required": true,
+            "in": "path",
+            "description": "The `id` of the endpoint.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The endpoint is gone."
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`webhook_endpoint_not_found`. Not this Project’s endpoint, or not an endpoint at all.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Stop subscribing",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/v1/devices/me": {
       "put": {
         "description": "Records the push token, the platform and the catalog version compiled into this build (ADR-0002), and marks the Device as seen. Idempotent: the app calls it at every launch and after every token rotation. A push token already held by another Device is reassigned to this one — the operating systems recycle tokens across installations, and two rows holding the same token would mean every notification sent twice.",
@@ -709,7 +1076,7 @@
     },
     "/v1/inbox": {
       "get": {
-        "description": "Every Project the caller owns, newest first: pending Requests and unread notifications. Metadata only — the title and body come from the notification block, never from inside the Surface (ADR-0003). A Request whose expiry has just passed is still listed as `pending` until the sweep reaches it, at most a minute later; `expiresAt` is published so the app can say so.",
+        "description": "Every Project the caller owns, newest first: pending Requests and unread notifications. Metadata only — the title and body come from the notification block, never from inside the Surface (ADR-0003). A Request whose expiry has just passed is still listed as `pending` until the sweep reaches it, at most a minute later; `expiresAt` is published so the app can say so. `environment` narrows the list to one half of the Projects — a rehearsal does ring, so leaving it off is how a person sees everything that was sent to them.",
         "operationId": "InboxController_inbox",
         "parameters": [
           {
@@ -721,6 +1088,18 @@
               "maximum": 100,
               "default": 30,
               "type": "integer"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "test",
+                "live"
+              ]
             }
           },
           {
@@ -755,7 +1134,7 @@
             }
           },
           "422": {
-            "description": "`invalid_request_body`. `limit` must be between 1 and 100; `cursor` must be a `nextCursor` this endpoint returned.",
+            "description": "`invalid_request_body`. `limit` must be between 1 and 100; `cursor` must be a `nextCursor` this endpoint returned; `environment` must be `test` or `live`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -778,7 +1157,7 @@
     },
     "/v1/history": {
       "get": {
-        "description": "The other half of the same list: Requests that reached a terminal state, and notifications that were read. Same page shape as the Inbox — every Message is in exactly one of the two.",
+        "description": "The other half of the same list: Requests that reached a terminal state, and notifications that were read. Same page shape as the Inbox — every Message is in exactly one of the two, and `environment` narrows either of them the same way.",
         "operationId": "InboxController_history",
         "parameters": [
           {
@@ -790,6 +1169,18 @@
               "maximum": 100,
               "default": 30,
               "type": "integer"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "test",
+                "live"
+              ]
             }
           },
           {
@@ -824,7 +1215,7 @@
             }
           },
           "422": {
-            "description": "`invalid_request_body`. `limit` must be between 1 and 100; `cursor` must be a `nextCursor` this endpoint returned.",
+            "description": "`invalid_request_body`. `limit` must be between 1 and 100; `cursor` must be a `nextCursor` this endpoint returned; `environment` must be `test` or `live`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -903,9 +1294,67 @@
         ]
       }
     },
+    "/v1/inbox/{id}/delivered": {
+      "post": {
+        "description": "The Device confirming the push reached this phone, which is the only thing that actually knows: FCM confirms it *queued* a notification, not that it landed. Idempotent, and the first Device wins — a Message fans out to every Device of the recipient (PRD §4.3), and the receipt means *first confirmed*, not *all confirmed*. Called from the background handler when a push wakes a dead app, so it is expected to run without anything being opened. It never changes a `status`.",
+        "operationId": "InboxController_markDelivered",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The `messageId` the push announced.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The row as it now stands, carrying the `deliveredAt` that was just stamped.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxEntry_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable session token, `session_revoked` for a device that was signed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`message_not_found`. A Message belonging to another person answers the same way as one that does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Acknowledge that a Message arrived",
+        "tags": [
+          "app"
+        ]
+      }
+    },
     "/v1/inbox/{id}/read": {
       "post": {
-        "description": "Records that the person saw it. Idempotent: the first read wins and a repeat returns the same `readAt`. For an `informational` Message this is what moves it to the History — it has no `pending` and no expiry, so being read is how it finishes (PRD §4.2). It never changes a `status`: a Request is still answered or dismissed through `POST /v1/requests/{id}/response` or `/dismiss`.",
+        "description": "Records that the person saw it. Idempotent: the first read wins and a repeat returns the same `readAt`. Stamps `deliveredAt` too when nothing had — a Message can only be read on a phone it reached — so an `informational` Message travels `delivered → read` even when the push never arrived and the person found it in the list (PRD §4.2). For such a Message this is what moves it to the History: it has no `pending` and no expiry, so being read is how it finishes. It never changes a `status`: a Request is still answered or dismissed through `POST /v1/requests/{id}/response` or `/dismiss`.",
         "operationId": "InboxController_markRead",
         "parameters": [
           {
@@ -1079,7 +1528,7 @@
     },
     "/v1/projects/{projectId}/api-keys": {
       "post": {
-        "description": "The second and last place a whole credential exists in a readable form — the first is registration. Only its prefix and a SHA-256 are stored, so nothing can return it again. Minting does not revoke anything: rotating is mint, put the new key in the agent, then revoke the old one, in that order, so that nothing stops working in between.",
+        "description": "The second and last place a whole credential exists in a readable form — the first is registration. Only its prefix and a SHA-256 are stored, so nothing can return it again. `environment` says which half of the Project the key speaks for and is required: the prefix it comes back with — `sk_test_…` or `sk_live_…` — is what an SDK reads its own environment from, and a key of one half neither creates nor reads the Requests of the other. Minting does not revoke anything: rotating is mint, put the new key in the agent, then revoke the old one, in that order, so that nothing stops working in between.",
         "operationId": "ProjectsController_mint",
         "parameters": [
           {
@@ -1092,6 +1541,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MintApiKeyDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "The new key, in full. Copy it now.",
@@ -1115,6 +1574,16 @@
           },
           "404": {
             "description": "`project_not_found`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `environment` must be `test` or `live`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1192,6 +1661,360 @@
         "summary": "Revoke an API key",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/v1/me/preferences": {
+      "get": {
+        "description": "The time zone and the quiet hours of the person signed in — the settings that decide whether a push is allowed to make a noise (PRD §4.5). They belong to the User, so they hold across every Project they own, and they survive a reinstall: the phone reads them back from here rather than remembering them locally.",
+        "operationId": "UsersController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The preferences as they stand. `quietHours` is null when none are set, which is where every account starts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivingPreferencesDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable session token, `session_revoked` for a device that was signed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Read the receiving preferences",
+        "tags": [
+          "app"
+        ]
+      },
+      "put": {
+        "description": "Replaces them whole: what you send is what the person will have. `quietHours: null` clears the window, and clears `allowHigh` with it — there is no switch remembered behind a window that no longer exists. `PUT` because the app sends this every time the screen is saved, and twice in a row means the same thing as once.",
+        "operationId": "UsersController_replace",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceivingPreferencesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The preferences as they now stand, read back from the row that was written.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivingPreferencesDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable session token, `session_revoked` for a device that was signed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `timezone` must be an IANA name the server knows, `start` and `end` must be `HH:MM` on a 24-hour clock and must differ, and quiet hours cannot be set without a timezone to read them in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Set the receiving preferences",
+        "tags": [
+          "app"
+        ]
+      }
+    },
+    "/v1/threads": {
+      "get": {
+        "description": "Every conversation this key can see, the one that last spoke first. Metadata only: `lastMessage` is the notification block of the newest Message, never anything read out of a surface (ADR-0003). One-shot Requests are Threads of one and are listed too — their `threadKey` is null. The list is scoped to the half of the Project the key belongs to: a `sk_test_…` never sees a live conversation.",
+        "operationId": "ThreadsController_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page, newest activity first, and the cursor for the next one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadPageDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable key, `api_key_revoked` for a revoked one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `limit` must be between 1 and 100; `cursor` must be a `nextCursor` this endpoint returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List the Threads of this Project",
+        "tags": [
+          "agent"
+        ]
+      }
+    },
+    "/v1/threads/{key}": {
+      "get": {
+        "description": "The conversation the agent named, and its history in order — oldest first, mixed: the notification of a plain Request and the metadata of an interactive card read the same way, told apart by `interactionType`. Page forward with `after`, which is the `sequence` of the last Message you hold; `nextAfter` is null when the page reached the end. A one-shot Thread has no key and is not reachable here — read its Request with `GET /v1/requests/{id}`.",
+        "operationId": "ThreadsController_read",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "The `threadKey` sent with the Requests of this conversation. URL-encode it: it is the agent’s own string and this API never parses it.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "default": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Thread and one page of its Messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadHistory_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable key, `api_key_revoked` for a revoked one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`thread_not_found`. A Thread of another Project — or of the other half of this one — answers the same way as a key nobody has used.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `after` must be a whole number; `limit` 1 to 100.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Read one Thread by its key",
+        "tags": [
+          "agent"
+        ]
+      }
+    },
+    "/v1/threads/{id}/messages": {
+      "get": {
+        "description": "The conversation as the person sees it: oldest first, with the Surface of every Message that has one, so a mixed history of text and interactive cards can be drawn in one call. `after` is the `sequence` of the last Message on screen — 0, or omitted, reads from the beginning. With `wait` the call holds until something arrives **in this Thread**: a notification, or a Message of any other conversation, never resolves it. Always a `200`; an empty `items` means the window closed with nothing new, and the app re-issues from the same `after`.",
+        "operationId": "DeviceThreadsController_messages",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The `threadId` carried by every row of the Inbox and of the History.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "default": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "wait",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "maximum": 30,
+              "default": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Messages after `after`, oldest first — empty if none arrived.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadMessagesDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable session token, `session_revoked` for a device that was signed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`thread_not_found`. A Thread belonging to another person answers the same way as one that does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `after` must be a whole number; `limit` 1 to 100; `wait` a whole number of seconds between 0 and 30.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Read a Thread, and wait for its next Message",
+        "tags": [
+          "app"
         ]
       }
     },
@@ -1358,6 +2181,13 @@
               "keyPrefix": {
                 "type": "string"
               },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "live"
+                ]
+              },
               "token": {
                 "type": "string"
               }
@@ -1365,6 +2195,7 @@
             "required": [
               "id",
               "keyPrefix",
+              "environment",
               "token"
             ],
             "additionalProperties": false
@@ -1620,6 +2451,20 @@
               "body"
             ]
           },
+          "priority": {
+            "default": "normal",
+            "type": "string",
+            "enum": [
+              "low",
+              "normal",
+              "high"
+            ]
+          },
+          "threadKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "surface": {
             "type": "object",
             "properties": {
@@ -1668,6 +2513,21 @@
           "requestId": {
             "type": "string"
           },
+          "threadId": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "interactionType": {
+            "type": "string",
+            "enum": [
+              "action",
+              "conversation"
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -1688,6 +2548,13 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
             "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
           },
           "minCatalogVersion": {
             "type": "integer",
@@ -1719,9 +2586,13 @@
         },
         "required": [
           "requestId",
+          "threadId",
+          "sequence",
+          "interactionType",
           "status",
           "createdAt",
           "expiresAt",
+          "environment",
           "minCatalogVersion",
           "warnings"
         ]
@@ -1753,79 +2624,20 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
             "nullable": true
           },
-          "response": {
-            "type": "object",
-            "properties": {
-              "responseId": {
-                "type": "string"
-              },
-              "actionName": {
-                "type": "string"
-              },
-              "sourceComponentId": {
-                "type": "string"
-              },
-              "context": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {},
-                "nullable": true
-              },
-              "clientTimestamp": {
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-              },
-              "answeredAt": {
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-              }
-            },
-            "required": [
-              "responseId",
-              "actionName",
-              "sourceComponentId",
-              "context",
-              "clientTimestamp",
-              "answeredAt"
-            ],
-            "additionalProperties": false,
-            "nullable": true
-          }
-        },
-        "required": [
-          "requestId",
-          "status",
-          "createdAt",
-          "expiresAt",
-          "response"
-        ],
-        "additionalProperties": false
-      },
-      "SettledRequestDto_Output": {
-        "type": "object",
-        "properties": {
-          "requestId": {
-            "type": "string"
-          },
-          "status": {
+          "environment": {
             "type": "string",
             "enum": [
-              "answered",
-              "expired",
-              "dismissed",
-              "cancelled"
+              "test",
+              "live"
             ]
           },
-          "createdAt": {
+          "deliveredAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
           },
-          "expiresAt": {
+          "readAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
@@ -1879,6 +2691,109 @@
           "status",
           "createdAt",
           "expiresAt",
+          "environment",
+          "deliveredAt",
+          "readAt",
+          "response"
+        ],
+        "additionalProperties": false
+      },
+      "SettledRequestDto_Output": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "expired",
+              "dismissed",
+              "cancelled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "response": {
+            "type": "object",
+            "properties": {
+              "responseId": {
+                "type": "string"
+              },
+              "actionName": {
+                "type": "string"
+              },
+              "sourceComponentId": {
+                "type": "string"
+              },
+              "context": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {},
+                "nullable": true
+              },
+              "clientTimestamp": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "answeredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "responseId",
+              "actionName",
+              "sourceComponentId",
+              "context",
+              "clientTimestamp",
+              "answeredAt"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          }
+        },
+        "required": [
+          "requestId",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "environment",
+          "deliveredAt",
+          "readAt",
           "response"
         ],
         "additionalProperties": false
@@ -1914,6 +2829,193 @@
           "sourceComponentId",
           "timestamp"
         ]
+      },
+      "WebhookEndpointsDto_Output": {
+        "type": "object",
+        "properties": {
+          "webhookEndpoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "environment": {
+                  "type": "string",
+                  "enum": [
+                    "test",
+                    "live"
+                  ]
+                },
+                "url": {
+                  "type": "string"
+                },
+                "events": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "message.delivered",
+                      "message.read",
+                      "message.answered",
+                      "message.expired",
+                      "message.dismissed",
+                      "message.cancelled"
+                    ]
+                  }
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "enabled",
+                    "disabled"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "environment",
+                "url",
+                "events",
+                "status",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "webhookEndpoints"
+        ],
+        "additionalProperties": false
+      },
+      "CreateWebhookEndpointDto": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "events": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "message.delivered",
+                "message.read",
+                "message.answered",
+                "message.expired",
+                "message.dismissed",
+                "message.cancelled"
+              ]
+            }
+          }
+        },
+        "required": [
+          "environment",
+          "url",
+          "events"
+        ]
+      },
+      "WebhookEndpointDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "message.delivered",
+                "message.read",
+                "message.answered",
+                "message.expired",
+                "message.dismissed",
+                "message.cancelled"
+              ]
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "environment",
+          "url",
+          "events",
+          "status",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateWebhookEndpointDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "events": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "message.delivered",
+                "message.read",
+                "message.answered",
+                "message.expired",
+                "message.dismissed",
+                "message.cancelled"
+              ]
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ]
+          }
+        }
       },
       "RegisterDeviceDto": {
         "type": "object",
@@ -1983,14 +3085,27 @@
           "projectId": {
             "type": "string"
           },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
           "threadId": {
             "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
           "interactionType": {
             "type": "string",
             "enum": [
               "informational",
-              "action"
+              "action",
+              "conversation"
             ]
           },
           "status": {
@@ -2075,6 +3190,12 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
             "nullable": true
           },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
           "readAt": {
             "type": "string",
             "format": "date-time",
@@ -2085,7 +3206,9 @@
         "required": [
           "messageId",
           "projectId",
+          "environment",
           "threadId",
+          "sequence",
           "interactionType",
           "status",
           "sender",
@@ -2093,6 +3216,7 @@
           "minCatalogVersion",
           "createdAt",
           "expiresAt",
+          "deliveredAt",
           "readAt"
         ],
         "additionalProperties": false
@@ -2126,14 +3250,27 @@
           "projectId": {
             "type": "string"
           },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
           "threadId": {
             "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
           "interactionType": {
             "type": "string",
             "enum": [
               "informational",
-              "action"
+              "action",
+              "conversation"
             ]
           },
           "status": {
@@ -2213,6 +3350,12 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
           },
           "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "deliveredAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
@@ -2254,7 +3397,9 @@
         "required": [
           "messageId",
           "projectId",
+          "environment",
           "threadId",
+          "sequence",
           "interactionType",
           "status",
           "sender",
@@ -2262,6 +3407,7 @@
           "minCatalogVersion",
           "createdAt",
           "expiresAt",
+          "deliveredAt",
           "readAt",
           "surface"
         ],
@@ -2300,6 +3446,13 @@
                       "keyPrefix": {
                         "type": "string"
                       },
+                      "environment": {
+                        "type": "string",
+                        "enum": [
+                          "test",
+                          "live"
+                        ]
+                      },
                       "createdAt": {
                         "type": "string",
                         "format": "date-time",
@@ -2315,6 +3468,7 @@
                     "required": [
                       "id",
                       "keyPrefix",
+                      "environment",
                       "createdAt",
                       "revokedAt"
                     ],
@@ -2379,6 +3533,13 @@
                 "keyPrefix": {
                   "type": "string"
                 },
+                "environment": {
+                  "type": "string",
+                  "enum": [
+                    "test",
+                    "live"
+                  ]
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time",
@@ -2394,6 +3555,7 @@
               "required": [
                 "id",
                 "keyPrefix",
+                "environment",
                 "createdAt",
                 "revokedAt"
               ],
@@ -2410,6 +3572,21 @@
         ],
         "additionalProperties": false
       },
+      "MintApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          }
+        },
+        "required": [
+          "environment"
+        ]
+      },
       "MintedApiKeyDto_Output": {
         "type": "object",
         "properties": {
@@ -2418,6 +3595,13 @@
           },
           "keyPrefix": {
             "type": "string"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
           },
           "token": {
             "type": "string"
@@ -2431,8 +3615,359 @@
         "required": [
           "id",
           "keyPrefix",
+          "environment",
           "token",
           "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "ReceivingPreferencesDto_Output": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "quietHours": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "end": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "allowHigh": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "allowHigh"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          }
+        },
+        "required": [
+          "timezone",
+          "quietHours"
+        ],
+        "additionalProperties": false
+      },
+      "ReceivingPreferencesDto": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "quietHours": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "end": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "allowHigh": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "allowHigh"
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "timezone",
+          "quietHours"
+        ]
+      },
+      "Thread_Output": {
+        "type": "object",
+        "properties": {
+          "threadId": {
+            "type": "string"
+          },
+          "threadKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "messageCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "lastMessage": {
+            "$ref": "#/components/schemas/ThreadMessage_Output"
+          }
+        },
+        "required": [
+          "threadId",
+          "threadKey",
+          "environment",
+          "messageCount",
+          "createdAt",
+          "lastMessage"
+        ],
+        "additionalProperties": false
+      },
+      "ThreadMessage_Output": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "interactionType": {
+            "type": "string",
+            "enum": [
+              "informational",
+              "action",
+              "conversation"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "answered",
+              "expired",
+              "dismissed",
+              "cancelled",
+              null
+            ],
+            "nullable": true
+          },
+          "sender": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "name",
+              "icon"
+            ],
+            "additionalProperties": false
+          },
+          "notification": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "quickActions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "title",
+              "body",
+              "quickActions"
+            ],
+            "additionalProperties": false
+          },
+          "minCatalogVersion": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "messageId",
+          "sequence",
+          "interactionType",
+          "status",
+          "sender",
+          "notification",
+          "minCatalogVersion",
+          "createdAt",
+          "expiresAt",
+          "deliveredAt",
+          "readAt"
+        ],
+        "additionalProperties": false
+      },
+      "ThreadPageDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Thread_Output"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "ThreadHistory_Output": {
+        "type": "object",
+        "properties": {
+          "threadId": {
+            "type": "string"
+          },
+          "threadKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "messageCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "lastMessage": {
+            "$ref": "#/components/schemas/ThreadMessage_Output"
+          },
+          "messages": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ThreadMessage_Output"
+                }
+              },
+              "nextAfter": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "nullable": true
+              }
+            },
+            "required": [
+              "items",
+              "nextAfter"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "threadId",
+          "threadKey",
+          "environment",
+          "messageCount",
+          "createdAt",
+          "lastMessage",
+          "messages"
+        ],
+        "additionalProperties": false
+      },
+      "ThreadMessagesDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxMessage_Output"
+            }
+          },
+          "nextAfter": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextAfter"
         ],
         "additionalProperties": false
       },
