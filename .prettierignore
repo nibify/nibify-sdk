@@ -1,0 +1,19 @@
+node_modules
+dist
+pnpm-lock.yaml
+
+# Prose, not code: an author decides where a line ends. Same rule as the private
+# repo, where the PRD and the ADRs are the ones being protected.
+**/*.md
+
+# Verbatim copies of the A2UI schemas: a reformat would hide a real upstream diff.
+catalog/vendor
+
+# A hand-authored artefact people read. Collapsing its enums would make every
+# future catalog diff harder to review.
+catalog/catalog.json
+
+# Generated from the Zod schemas in the private repo and copied here whole
+# (ADR-0010): the generator decides its shape, and a reformat here would turn
+# every regeneration into a diff of the entire document.
+openapi
