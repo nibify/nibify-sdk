@@ -5,6 +5,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
+import { COMPONENT_ADHERENCE } from './eslint.adherence.mjs';
 
 // The design-system adherence rule, ported from `docs/design/_adherence.oxlintrc.json`
 // — the oxlint config that arrived with the design system and that no tool in this repo
@@ -14,9 +15,16 @@ import prettier from 'eslint-config-prettier';
 // `react/forbid-elements` had an empty list and `no-restricted-imports` guarded a folder
 // layout that does not exist here.
 //
-// The first three selectors are the rule itself, and they hold for a line of CSS as much
-// as for a component prop: no hex, no px, no font beyond the two. A value is written once
-// in tokens.json and arrives as `var(--nb-…)` (ADR-0011).
+// These three selectors are the rule itself, and they hold for a line of CSS as much as
+// for a component prop: no hex, no px, no font beyond the two. A value is written once
+// in tokens.json and arrives as `var(--nb-…)` (ADR-0011). They are written by hand, and
+// they stay written by hand: they are a decision, not a projection of a type.
+//
+// What follows them is not. Each component's declared props used to be spelled out
+// here too, one selector per component and one per enum — a third copy of every prop,
+// after the .jsx and the .d.ts, and the only one nothing checked. They now come from
+// the .d.ts themselves through `pnpm adherence`, and `pnpm lint` compares the two
+// before it runs anything, so it never works from a copy that has fallen behind (#76).
 const ADHERENCE = [
   {
     selector: 'Literal[value=/#[0-9a-fA-F]{3,8}\\b/]',
@@ -31,248 +39,7 @@ const ADHERENCE = [
     message: 'Font not provided by the design system. Available: Space Grotesk, JetBrains Mono.',
   },
 
-  // Each component's declared props, taken from its .d.ts: a name that does not
-  // exist, or a value outside the enum, fails here instead of on screen.
-  {
-    selector:
-      "JSXOpeningElement[name.name='Avatar'] > JSXAttribute > JSXIdentifier[name!=/^(?:initials|tone|size|key|ref|className|style|children)$/]",
-    message: "<Avatar> doesn't accept that prop. Declared props: initials, tone, size.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Avatar'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:quiet|ink|accent)$/]",
-    message: "<Avatar> tone must be one of 'quiet' | 'ink' | 'accent'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|platform|block|disabled|loading|children|onClick|type|key|ref|className|style|children)$/]",
-    message:
-      "<Button> doesn't accept that prop. Declared props: variant, platform, block, disabled, loading, children, onClick, type.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|secondary|ghost|inverse)$/]",
-    message: "<Button> variant must be one of 'primary' | 'secondary' | 'ghost' | 'inverse'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='platform'] > Literal[value!=/^(?:mobile|web)$/]",
-    message: "<Button> platform must be one of 'mobile' | 'web'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:button|submit)$/]",
-    message: "<Button> type must be one of 'button' | 'submit'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='ChatBubble'] > JSXAttribute > JSXIdentifier[name!=/^(?:from|children|meta|key|ref|className|style|children)$/]",
-    message: "<ChatBubble> doesn't accept that prop. Declared props: from, children, meta.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='ChatBubble'] > JSXAttribute[name.name='from'] > Literal[value!=/^(?:agent|user)$/]",
-    message: "<ChatBubble> from must be one of 'agent' | 'user'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='ChatComposer'] > JSXAttribute > JSXIdentifier[name!=/^(?:value|placeholder|onChange|onSend|key|ref|className|style|children)$/]",
-    message:
-      "<ChatComposer> doesn't accept that prop. Declared props: value, placeholder, onChange, onSend.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='CodeBlock'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|tabs|activeTab|footer|onTab|key|ref|className|style|children)$/]",
-    message:
-      "<CodeBlock> doesn't accept that prop. Declared props: children, tabs, activeTab, footer, onTab.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='DeliveryChip'] > JSXAttribute > JSXIdentifier[name!=/^(?:step|key|ref|className|style|children)$/]",
-    message: "<DeliveryChip> doesn't accept that prop. Declared props: step.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='DeliveryChip'] > JSXAttribute[name.name='step'] > Literal[value!=/^(?:sent|delivered|read|answered)$/]",
-    message: "<DeliveryChip> step must be one of 'sent' | 'delivered' | 'read' | 'answered'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='EmptyState'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|hint|key|ref|className|style|children)$/]",
-    message: "<EmptyState> doesn't accept that prop. Declared props: label, hint.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='FilterChip'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|active|onClick|key|ref|className|style|children)$/]",
-    message: "<FilterChip> doesn't accept that prop. Declared props: label, active, onClick.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='IconButton'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|size|ariaLabel|children|onClick|key|ref|className|style|children)$/]",
-    message:
-      "<IconButton> doesn't accept that prop. Declared props: variant, size, ariaLabel, children, onClick.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='IconButton'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|secondary)$/]",
-    message: "<IconButton> variant must be one of 'primary' | 'secondary'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='InboxRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:agent|time|message|state|tone|onClick|key|ref|className|style|children)$/]",
-    message:
-      "<InboxRow> doesn't accept that prop. Declared props: agent, time, message, state, tone, onClick.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='InboxRow'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:open|ageing|closed|expired)$/]",
-    message: "<InboxRow> tone must be one of 'open' | 'ageing' | 'closed' | 'expired'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Lockup'] > JSXAttribute > JSXIdentifier[name!=/^(?:size|tone|key|ref|className|style|children)$/]",
-    message: "<Lockup> doesn't accept that prop. Declared props: size, tone.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Lockup'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:light|dark)$/]",
-    message: "<Lockup> tone must be one of 'light' | 'dark'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Mark'] > JSXAttribute > JSXIdentifier[name!=/^(?:size|tone|ball|pulse|title|key|ref|className|style|children)$/]",
-    message: "<Mark> doesn't accept that prop. Declared props: size, tone, ball, pulse, title.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Mark'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:light|dark|mono)$/]",
-    message: "<Mark> tone must be one of 'light' | 'dark' | 'mono'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Mark'] > JSXAttribute[name.name='ball'] > Literal[value!=/^(?:center|sent|reply|answered|expired)$/]",
-    message: "<Mark> ball must be one of 'center' | 'sent' | 'reply' | 'answered' | 'expired'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='MetricCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|value|note|tone|key|ref|className|style|children)$/]",
-    message: "<MetricCard> doesn't accept that prop. Declared props: label, value, note, tone.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='MetricCard'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:neutral|accent|ageing)$/]",
-    message: "<MetricCard> tone must be one of 'neutral' | 'accent' | 'ageing'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='PongLoader'] > JSXAttribute > JSXIdentifier[name!=/^(?:width|tone|label|key|ref|className|style|children)$/]",
-    message: "<PongLoader> doesn't accept that prop. Declared props: width, tone, label.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='PongLoader'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:dark|light)$/]",
-    message: "<PongLoader> tone must be one of 'dark' | 'light'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='QuickReply'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|tone|onClick|key|ref|className|style|children)$/]",
-    message: "<QuickReply> doesn't accept that prop. Declared props: label, tone, onClick.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='QuickReply'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:suggested|neutral)$/]",
-    message: "<QuickReply> tone must be one of 'suggested' | 'neutral'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='RadioGroup'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|legend|value|onChange|key|ref|className|style|children)$/]",
-    message:
-      "<RadioGroup> doesn't accept that prop. Declared props: name, legend, value, onChange.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='RadioOption'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|value|selected|onSelect|key|ref|className|style|children)$/]",
-    message:
-      "<RadioOption> doesn't accept that prop. Declared props: label, value, selected, onSelect.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='RequestCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:agent|time|state|question|footer|open|children|key|ref|className|style|children)$/]",
-    message:
-      "<RequestCard> doesn't accept that prop. Declared props: agent, time, state, question, footer, open, children.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='RequestCard'] > JSXAttribute[name.name='state'] > Literal[value!=/^(?:waiting|ageing|answered|expired|read|delivered|sent)$/]",
-    message:
-      "<RequestCard> state must be one of 'waiting' | 'ageing' | 'answered' | 'expired' | 'read' | 'delivered' | 'sent'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='SegmentedControl'] > JSXAttribute > JSXIdentifier[name!=/^(?:options|value|onChange|key|ref|className|style|children)$/]",
-    message:
-      "<SegmentedControl> doesn't accept that prop. Declared props: options, value, onChange.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='SidebarItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|badge|active|onClick|key|ref|className|style|children)$/]",
-    message:
-      "<SidebarItem> doesn't accept that prop. Declared props: label, badge, active, onClick.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='StateBadge'] > JSXAttribute > JSXIdentifier[name!=/^(?:state|label|size|key|ref|className|style|children)$/]",
-    message: "<StateBadge> doesn't accept that prop. Declared props: state, label, size.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='StateBadge'] > JSXAttribute[name.name='state'] > Literal[value!=/^(?:sent|delivered|read|waiting|ageing|answered|expired)$/]",
-    message:
-      "<StateBadge> state must be one of 'sent' | 'delivered' | 'read' | 'waiting' | 'ageing' | 'answered' | 'expired'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='StateBadge'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:s|m)$/]",
-    message: "<StateBadge> size must be one of 's' | 'm'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Switch'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|checked|onChange|key|ref|className|style|children)$/]",
-    message: "<Switch> doesn't accept that prop. Declared props: label, checked, onChange.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='TextField'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|value|placeholder|prefix|suffix|mono|state|hint|type|autoComplete|onChange|key|ref|className|style|children)$/]",
-    message:
-      "<TextField> doesn't accept that prop. Declared props: label, value, placeholder, prefix, suffix, mono, state, hint, type, autoComplete, onChange.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='TextField'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:text|email|tel|url|number|password)$/]",
-    message:
-      "<TextField> type must be one of 'text' | 'email' | 'tel' | 'url' | 'number' | 'password'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='TextField'] > JSXAttribute[name.name='state'] > Literal[value!=/^(?:default|active|error)$/]",
-    message: "<TextField> state must be one of 'default' | 'active' | 'error'.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='Textarea'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|value|placeholder|rows|onChange|key|ref|className|style|children)$/]",
-    message:
-      "<Textarea> doesn't accept that prop. Declared props: label, value, placeholder, rows, onChange.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='TimelineItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|time|tone|last|key|ref|className|style|children)$/]",
-    message: "<TimelineItem> doesn't accept that prop. Declared props: label, time, tone, last.",
-  },
-  {
-    selector:
-      "JSXOpeningElement[name.name='TimelineItem'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:quiet|strong|answered|accent)$/]",
-    message: "<TimelineItem> tone must be one of 'quiet' | 'strong' | 'answered' | 'accent'.",
-  },
+  ...COMPONENT_ADHERENCE,
 ];
 
 export default tseslint.config(
