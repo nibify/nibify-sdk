@@ -20,6 +20,13 @@
 # A package must exist on the registry before a trusted publisher can be configured for
 # it, so a brand-new name still needs one manual first publish (npm/cli#8544).
 #
+# The package choice opens on a sentinel that fails the run. A `workflow_dispatch`
+# choice always preselects its first option, so a form submitted without reading it
+# would publish whichever package happened to be first — which is how a run meant for
+# `packages/sdk-ts` went at the node instead on 21 August 2026. That one got no further
+# than the registry, which refuses a version already taken; with a free version number it
+# would have shipped a release nobody asked for, on a package headed for n8n verification.
+#
 # It is `npm publish` and not `pnpm publish` even though this is a pnpm workspace:
 # trusted publishing is npm's own OIDC exchange, and the two packages have no
 # workspace dependencies for pnpm to rewrite. Nothing is installed or built here
@@ -38,6 +45,7 @@ on:
         required: true
         type: choice
         options:
+          - '— pick a package —'
           - packages/n8n-nodes-nibify
           - packages/sdk-ts
       dry_run:
@@ -52,6 +60,13 @@ jobs:
       contents: read
       id-token: write
     steps:
+      # First, before the checkout: a run that never chose is a run that must not start.
+      - name: Refuse the sentinel
+        if: inputs.package == '— pick a package —'
+        run: |
+          echo "::error::No package chosen. The dropdown opens on a placeholder — pick the package you actually meant to publish."
+          exit 1
+
       - uses: actions/checkout@v7
 
       # `.nvmrc` and not a literal: the Node version is written once, and CI and
