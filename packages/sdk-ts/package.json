@@ -1,6 +1,6 @@
 {
   "name": "@nibify/sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Placeholder. TypeScript SDK for Nibify — ask a human a question from your agent and wait for the answer. Not yet functional.",
   "license": "MIT",
   "author": "Nibify",
