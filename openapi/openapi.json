@@ -288,7 +288,7 @@
         ],
         "summary": "Create a Request",
         "tags": [
-          "Requests"
+          "agent"
         ]
       }
     },
@@ -346,7 +346,7 @@
         ],
         "summary": "Read a Request",
         "tags": [
-          "Requests"
+          "agent"
         ]
       },
       "delete": {
@@ -412,7 +412,7 @@
         ],
         "summary": "Withdraw a Request",
         "tags": [
-          "Requests"
+          "agent"
         ]
       }
     },
@@ -491,7 +491,7 @@
         ],
         "summary": "Await the outcome of a Request",
         "tags": [
-          "Requests"
+          "agent"
         ]
       },
       "post": {
@@ -1267,7 +1267,7 @@
         },
         "summary": "Liveness and database reachability",
         "tags": [
-          "Health"
+          "ops"
         ]
       }
     }
