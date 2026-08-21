@@ -29,9 +29,11 @@ pnpm format:check
 
 ## The configs are copies, and that is deliberate
 
-`tsconfig.base.json`, `eslint.config.mjs` and `.prettierrc.json` are **byte-for-byte copies** of the files at the root of the private repo. A published `@nibify/eslint-config` would drop drift to zero, but it would put the closed repo behind a release of the open one for every tweak to a rule; with two consumers the trade does not pay.
+`tsconfig.base.json`, `eslint.config.mjs`, `eslint.adherence.mjs` and `.prettierrc.json` are **byte-for-byte copies** of the files at the root of the private repo. A published `@nibify/eslint-config` would drop drift to zero, but it would put the closed repo behind a release of the open one for every tweak to a rule; with two consumers the trade does not pay.
 
-The copy has a visible cost and it is not hidden: `eslint.config.mjs` carries blocks that match nothing here — the design-system adherence selectors, the NestJS import boundaries — and `tsconfig.base.json` carries decorator options no package here uses. They stay, because a file that differs is a file whose drift nobody can see. `diff` against the private repo is the check, and CI running the same four commands on both sides is what makes it worth having.
+The copy has a visible cost and it is not hidden: `eslint.config.mjs` carries blocks that match nothing here — the design-system adherence selectors, the NestJS import boundaries — and `tsconfig.base.json` carries decorator options no package here uses. They stay, because a file that differs is a file whose drift nobody can see.
+
+`eslint.adherence.mjs` is the newest of the four and the one to be careful with: `eslint.config.mjs` imports it, so it is not optional here — without it the lint fails to load at all. On the other side it is generated from the `.d.ts` of the private design-system components and regenerating it has to produce an empty diff; here there is no generator and nothing to generate from, so it is copied like the rest and edited on neither side. `diff` against the private repo is the check, and CI running the same four commands on both sides is what makes it worth having.
 
 ## Publishing
 
