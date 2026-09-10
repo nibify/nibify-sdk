@@ -925,7 +925,7 @@
     },
     "/v1/notifications": {
       "post": {
-        "description": "Creates an `informational` Message: it arrives on the phone, lands in the Inbox and is marked read when it is looked at, and asks for nothing back. There is no `pending` state, no expiry and no callback — what happens to it next reaches you as the `message.delivered` and `message.read` events of a webhook endpoint, if you subscribe to them. Send `surface` for a rich body; a surface that dispatches an action belongs to `POST /v1/requests` and is refused here.",
+        "description": "Creates an `informational` Message: it arrives on the phone, lands in the Inbox and is marked read when it is looked at, and asks for nothing back. There is no `pending` state, no expiry and no callback — what happens to it next reaches you as the `message.delivered` and `message.read` events of a webhook endpoint, if you subscribe to them. Send `surface` for a rich body; a surface that dispatches an action belongs to `POST /v1/requests` and is refused here. Send `threadKey` to say it inside a conversation you have already opened: the Message takes the next `sequence` of that Thread and stays `informational`, because it still asks for nothing.",
         "operationId": "NotificationsController_create",
         "parameters": [],
         "requestBody": {
@@ -960,7 +960,7 @@
             }
           },
           "422": {
-            "description": "`surface_invalid` names the component and property at fault, the `root` the renderer would not find, or a surface that dispatches an action — which is a Request and belongs to `POST /v1/requests`. `invalid_request_body` is a malformed envelope, and it is also what a field of a Request sent here gets: `quickActions`, `expiresAt`, `callbackUrl` and `threadKey` are refused by name rather than ignored, because a notification that silently dropped a `callbackUrl` would leave an agent waiting for a call that is never made.",
+            "description": "`surface_invalid` names the component and property at fault, the `root` the renderer would not find, or a surface that dispatches an action — which is a Request and belongs to `POST /v1/requests`. `invalid_request_body` is a malformed envelope, and it is also what a field of a Request sent here gets: `quickActions`, `expiresAt` and `callbackUrl` are refused by name rather than ignored, because a notification that silently dropped a `callbackUrl` would leave an agent waiting for a call that is never made.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3862,6 +3862,11 @@
               "dataModel",
               "components"
             ]
+          },
+          "threadKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           }
         },
         "required": [
