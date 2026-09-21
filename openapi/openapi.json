@@ -3058,7 +3058,7 @@
     },
     "/v1/messages/{id}": {
       "get": {
-        "description": "The row of the list, and beside it what a trail needs: the key that sent it, the Device that answered, the `Idempotency-Key` the agent chose, whether it asked for a `callbackUrl` of its own, and the Project’s standing subscriptions in that half. Still metadata: never the Surface, never the `context` an answer came with, and never the `callbackUrl` itself — a workflow engine’s resume URL is a credential.",
+        "description": "The row of the list, and beside it what a trail needs: the key that sent it, the Devices that received it, read it and answered it, the `Idempotency-Key` the agent chose, whether it asked for a `callbackUrl` of its own, and the Project’s standing subscriptions in that half. Still metadata: never the Surface, never the `context` an answer came with, and never the `callbackUrl` itself — a workflow engine’s resume URL is a credential.",
         "operationId": "MessagesController_read",
         "parameters": [
           {
@@ -6201,6 +6201,48 @@
             ],
             "additionalProperties": false
           },
+          "deliveredBy": {
+            "type": "object",
+            "properties": {
+              "deviceId": {
+                "type": "string"
+              },
+              "platform": {
+                "type": "string",
+                "enum": [
+                  "ios",
+                  "android"
+                ]
+              }
+            },
+            "required": [
+              "deviceId",
+              "platform"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "readBy": {
+            "type": "object",
+            "properties": {
+              "deviceId": {
+                "type": "string"
+              },
+              "platform": {
+                "type": "string",
+                "enum": [
+                  "ios",
+                  "android"
+                ]
+              }
+            },
+            "required": [
+              "deviceId",
+              "platform"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
           "answeredBy": {
             "type": "object",
             "properties": {
@@ -6282,6 +6324,8 @@
           "expiresAt",
           "answer",
           "sentBy",
+          "deliveredBy",
+          "readBy",
           "answeredBy",
           "idempotencyKey",
           "hasCallbackUrl",
