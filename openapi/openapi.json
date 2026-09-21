@@ -923,6 +923,67 @@
         ]
       }
     },
+    "/v1/messages/{id}/cancel": {
+      "post": {
+        "description": "Moves a pending Request of yours to `cancelled`, exactly as the agent’s own `DELETE /v1/requests/{id}` would: the agent is told `message.cancelled` on its callback and its subscriptions, and the phone stops showing the card. Nothing is deleted. A Request that reached a terminal state first is a `409` naming that state.",
+        "operationId": "UserRequestsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The Message’s id, as the list shows it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The Request was withdrawn. Read it again for the trail."
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`message_not_found`. A notification, a Message of somebody else’s, and one under a Project you deleted all answer the same way as an id that was never minted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The Request was already terminal — the code names which state won: `request_already_answered`, `request_already_expired`, `request_already_dismissed` or `request_already_cancelled`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Withdraw a Request from the console",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/v1/notifications": {
       "post": {
         "description": "Creates an `informational` Message: it arrives on the phone, lands in the Inbox and is marked read when it is looked at, and asks for nothing back. There is no `pending` state, no expiry and no callback — what happens to it next reaches you as the `message.delivered` and `message.read` events of a webhook endpoint, if you subscribe to them. Send `surface` for a rich body; a surface that dispatches an action belongs to `POST /v1/requests` and is refused here. Send `threadKey` to say it inside a conversation you have already opened: the Message takes the next `sequence` of that Thread and stays `informational`, because it still asks for nothing.",
@@ -2420,6 +2481,44 @@
         ]
       }
     },
+    "/v1/me": {
+      "get": {
+        "description": "The id and the email of the account this Session belongs to — what the Account page shows, read from the server rather than remembered by the browser. Nothing here is settable yet: there is nowhere an email is changed, and nowhere the account is deleted.",
+        "operationId": "MeController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The person.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "The person signed in",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/v1/threads": {
       "get": {
         "description": "Every conversation this key can see, the one that last spoke first. Metadata only: `lastMessage` is the notification block of the newest Message, never anything read out of a surface (ADR-0003). One-shot Requests are Threads of one and are listed too — their `threadKey` is null. The list is scoped to the half of the Project the key belongs to: a `sk_test_…` never sees a live conversation.",
@@ -2833,7 +2932,7 @@
     },
     "/v1/messages": {
       "get": {
-        "description": "Every Message sent from the Projects you own, newest first, filterable by Project, half, status and Thread. A row is **metadata and the notification title**: `interactionType`, priority, status, the delivery and read receipts, the deadline, and the action a Response carried — never the Surface the agent built, never the `context` an answer came with. Requests whose Content has been deleted are listed with `contentDeleted` and an empty title, because what was asked and how it ended survives what was written (ADR-0016). Paged with an opaque cursor: hand `nextCursor` back unchanged, and `null` means the end.",
+        "description": "Every Message sent from the Projects you own, newest first, filterable by Project, half, status, type and Thread. A row is **metadata and the notification title**: `interactionType`, priority, status, the delivery and read receipts, the deadline, and the action a Response carried — never the Surface the agent built, never the `context` an answer came with. Requests whose Content has been deleted are listed with `contentDeleted` and an empty title, because what was asked and how it ended survives what was written (ADR-0016). Paged with an opaque cursor: hand `nextCursor` back unchanged, and `null` means the end.",
         "operationId": "MessagesController_list",
         "parameters": [
           {
@@ -2884,6 +2983,18 @@
             }
           },
           {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "request",
+                "notification"
+              ]
+            }
+          },
+          {
             "name": "threadId",
             "required": false,
             "in": "query",
@@ -2904,7 +3015,7 @@
         ],
         "responses": {
           "200": {
-            "description": "One page. An account that has sent nothing, and a filter that matches nothing, both answer with an empty list and no cursor.",
+            "description": "One page, and `total`: how many rows the filters match in all. An account that has sent nothing, and a filter that matches nothing, both answer with an empty list, no cursor and a total of zero.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2924,7 +3035,7 @@
             }
           },
           "422": {
-            "description": "`invalid_request_body`. `limit` between 1 and 100, `environment` `test` or `live`, `status` one of the five, and `cursor` a `nextCursor` this endpoint returned. A `projectId` or a `threadId` that is not yours is not an error: it narrows the list to nothing, for the reason every read over this table answers the same about a Project that is somebody else’s and one that never existed.",
+            "description": "`invalid_request_body`. `limit` between 1 and 100, `environment` `test` or `live`, `status` one of the five, `type` `request` or `notification`, and `cursor` a `nextCursor` this endpoint returned. A `projectId` or a `threadId` that is not yours is not an error: it narrows the list to nothing, for the reason every read over this table answers the same about a Project that is somebody else’s and one that never existed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2940,6 +3051,64 @@
           }
         ],
         "summary": "What your agents sent, newest first",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/messages/{id}": {
+      "get": {
+        "description": "The row of the list, and beside it what a trail needs: the key that sent it, the Device that answered, the `Idempotency-Key` the agent chose, whether it asked for a `callbackUrl` of its own, and the Project’s standing subscriptions in that half. Still metadata: never the Surface, never the `context` an answer came with, and never the `callbackUrl` itself — a workflow engine’s resume URL is a credential.",
+        "operationId": "MessagesController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The Message’s id, as the list shows it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Message as it stands.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentMessageDetailDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`message_not_found`. A Message of somebody else’s, and one under a Project you deleted, answer the same way as an id that was never minted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "One Message your agents sent",
         "tags": [
           "dashboard"
         ]
@@ -4327,6 +4496,9 @@
                 "signedIn": {
                   "type": "boolean"
                 },
+                "hasPushToken": {
+                  "type": "boolean"
+                },
                 "revokedAt": {
                   "type": "string",
                   "format": "date-time",
@@ -4341,6 +4513,7 @@
                 "lastSeenAt",
                 "createdAt",
                 "signedIn",
+                "hasPushToken",
                 "revokedAt"
               ],
               "additionalProperties": false
@@ -5239,6 +5412,22 @@
           "quietHours"
         ]
       },
+      "MeDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "additionalProperties": false
+      },
       "Thread_Output": {
         "type": "object",
         "properties": {
@@ -5878,11 +6067,225 @@
           "nextCursor": {
             "type": "string",
             "nullable": true
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           }
         },
         "required": [
           "items",
-          "nextCursor"
+          "nextCursor",
+          "total"
+        ],
+        "additionalProperties": false
+      },
+      "SentMessageDetailDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "threadKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "interactionType": {
+            "type": "string",
+            "enum": [
+              "informational",
+              "action",
+              "conversation"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "normal",
+              "high"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "answered",
+              "expired",
+              "dismissed",
+              "cancelled",
+              null
+            ],
+            "nullable": true
+          },
+          "notificationTitle": {
+            "type": "string"
+          },
+          "contentDeleted": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
+          "answer": {
+            "type": "object",
+            "properties": {
+              "actionName": {
+                "type": "string"
+              },
+              "answeredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "actionName",
+              "answeredAt"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "sentBy": {
+            "type": "object",
+            "properties": {
+              "apiKeyId": {
+                "type": "string"
+              },
+              "keyPrefix": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "apiKeyId",
+              "keyPrefix"
+            ],
+            "additionalProperties": false
+          },
+          "answeredBy": {
+            "type": "object",
+            "properties": {
+              "deviceId": {
+                "type": "string"
+              },
+              "platform": {
+                "type": "string",
+                "enum": [
+                  "ios",
+                  "android"
+                ]
+              }
+            },
+            "required": [
+              "deviceId",
+              "platform"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasCallbackUrl": {
+            "type": "boolean"
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "events": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "message.delivered",
+                      "message.read",
+                      "message.answered",
+                      "message.expired",
+                      "message.dismissed",
+                      "message.cancelled"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "url",
+                "events"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "environment",
+          "threadId",
+          "threadKey",
+          "sequence",
+          "interactionType",
+          "priority",
+          "status",
+          "notificationTitle",
+          "contentDeleted",
+          "createdAt",
+          "deliveredAt",
+          "readAt",
+          "expiresAt",
+          "answer",
+          "sentBy",
+          "answeredBy",
+          "idempotencyKey",
+          "hasCallbackUrl",
+          "endpoints"
         ],
         "additionalProperties": false
       },
