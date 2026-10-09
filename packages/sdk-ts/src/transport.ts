@@ -5,7 +5,7 @@ import { ROUTES, type CoveredOperation, type SuccessBody } from './operations.ts
 export interface Call<O extends CoveredOperation> {
   operation: O;
   pathParams?: Record<string, string>;
-  query?: Record<string, string | number>;
+  query?: Record<string, string | number | undefined>;
   body?: unknown;
   headers?: Record<string, string>;
   retry: boolean;
@@ -38,7 +38,7 @@ export class Transport {
         ),
     );
     for (const [name, value] of Object.entries(call.query ?? {})) {
-      url.searchParams.set(name, String(value));
+      if (value !== undefined) url.searchParams.set(name, String(value));
     }
     const init: RequestInit = {
       method: method.toUpperCase(),

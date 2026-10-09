@@ -10,6 +10,12 @@ export const ROUTES = {
   RequestsController_create: { method: 'post', path: '/v1/requests' },
   RequestsController_awaitResponse: { method: 'get', path: '/v1/requests/{id}/response' },
   NotificationsController_create: { method: 'post', path: '/v1/notifications' },
+  RequestsController_read: { method: 'get', path: '/v1/requests/{id}' },
+  RequestsController_cancel: { method: 'delete', path: '/v1/requests/{id}' },
+  RequestsController_renotify: { method: 'post', path: '/v1/requests/{id}/nudge' },
+  RequestsController_list: { method: 'get', path: '/v1/requests' },
+  ThreadsController_list: { method: 'get', path: '/v1/threads' },
+  ThreadsController_read: { method: 'get', path: '/v1/threads/{key}' },
 } as const satisfies { [O in keyof operations]?: Route<keyof paths> };
 
 export type CoveredOperation = keyof typeof ROUTES;
@@ -27,3 +33,5 @@ export type RequestBody<O extends CoveredOperation> = operations[O] extends {
 }
   ? JsonOf<B>
   : never;
+
+export type Query<O extends CoveredOperation> = NonNullable<operations[O]['parameters']['query']>;

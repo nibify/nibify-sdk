@@ -24,6 +24,15 @@ if (result.status === 'answered') {
 - `ask()` aspetta finché la richiesta non è chiusa, anche per sempre. Un esito non è un errore: si risolve in `answered`, `expired`, `dismissed`, `cancelled`, oppure `timeout` se hai passato `timeout` (ms) o `signal` e l'attesa è finita prima. `timeout` non è `expired`: la richiesta resta aperta e `result.request.wait()` riprende ad aspettarla.
 - Errori HTTP e di rete sollevano `NibifyError`, con `status` e `code` dell'API. `ask()` ritenta da sé su rete, `429` e `5xx`, con lo stesso `Idempotency-Key`: una richiesta sola.
 - `notify()` manda una notifica che non chiede risposta, e non ritenta.
+- `getRequest(id)` legge la richiesta com'è adesso, senza aspettare; `result.request` è lo stesso handle che dà `ask()`. Sull'handle: `wait()`, `nudge()` (ri-manda la push, la richiesta non cambia) e `cancel()` (la ritira: un `ask()` che la aspetta si risolve in `cancelled`). `nudge()` e `cancel()` non ritentano; su una richiesta già chiusa sollevano `NibifyError` `409`, con un `code` come `request_already_answered`.
+- `requests.list()`, `threads.list()` e `threads.get(key).messages` sono iteratori asincroni: `for await` scorre tutte le pagine, `pageSize` dice quante righe per chiamata.
+
+```ts
+for await (const pending of nibify.requests.list({ status: 'pending' })) {
+  await pending.request.cancel();
+}
+```
+
 - `client.environment` è `test` o `live`, dedotto dal prefisso della chiave.
 
 ESM, Node ≥ 20.3, nessuna dipendenza a runtime.

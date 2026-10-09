@@ -6,15 +6,8 @@ import { test } from 'node:test';
 import { agentOperations, generateTypes, readSpec, TYPES_PATH } from '../scripts/agent-types.ts';
 import { ROUTES } from '../src/operations.ts';
 
-/** Operations of the `agent` tag the facade does not call yet. Emptied by #19. */
-const NOT_YET_COVERED = [
-  'RequestsController_list',
-  'RequestsController_read',
-  'RequestsController_cancel',
-  'RequestsController_renotify',
-  'ThreadsController_list',
-  'ThreadsController_read',
-];
+/** Operations of the `agent` tag the facade does not call yet. */
+const NOT_YET_COVERED: string[] = [];
 
 test('the committed types are what the spec generates', async () => {
   const committed = (await readFile(TYPES_PATH, 'utf8')).split('\n');
