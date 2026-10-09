@@ -1,0 +1,15 @@
+**REQUIRED PROPERTIES:** You MUST include ALL required properties for every component, even if they are inside a template or will be bound to data.
+- For 'Text', you MUST provide 'text'. If dynamic, use { "path": "..." }.
+- For 'Image', you MUST provide 'url'. If dynamic, use { "path": "..." }.
+- For 'Button', you MUST provide 'child' and 'action'.
+- For 'TextField', 'CheckBox' and 'ChoicePicker', you MUST provide 'label'.
+
+**STRUCTURE:** Components are a flat list with unique ids; hierarchy is by reference ('children' is an array of ids, 'child' is a single id). Exactly one component MUST have the id 'root'.
+
+**NO FORM COMPONENT:** A form is a pattern, not a component. Build it as a Column or Card of inputs bound to the data model, plus a Button whose 'action.event.context' collects the paths of those fields.
+
+**ONE SELECTION COMPONENT:** 'ChoicePicker' covers radio groups, dropdowns, selects and multi-selects. There is no Select, Radio or Dropdown.
+
+**NO FUNCTIONS:** This catalog defines no functions. Text cannot be concatenated or formatted at render time — send the final string, or bind a single path.
+
+**THE LOCK SCREEN CARRIES THE DECISION:** Anything answerable without typing should also exist as a notification quickAction with the same action name. Anything needing structured input (a note, a choice, a date, a slider) is answered by opening the app.

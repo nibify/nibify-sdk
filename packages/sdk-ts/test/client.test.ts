@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, test } from 'node:test';
 
 import { Nibify, NibifyError, type Surface } from '../src/index.ts';
+import { fakeFetch, json, type Reply } from './fake-fetch.ts';
 
 const KEY = 'sk_test_0123abcd0123456789abcdef0123456789ab';
 
@@ -17,48 +18,6 @@ const SURFACE: Surface = {
 const ASK = {
   sender: { name: 'Outreach agent' },
   notification: { title: 'Approvazione richiesta', body: 'Tre email pronte.' },
-};
-
-interface Seen {
-  method: string;
-  url: URL;
-  headers: Headers;
-  body: unknown;
-}
-
-type Reply = (seen: Seen) => Response | Promise<Response>;
-
-function fakeFetch(...replies: Reply[]): { fetch: typeof fetch; seen: Seen[] } {
-  const seen: Seen[] = [];
-  const fake = (async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
-    const call: Seen = {
-      method: init?.method ?? 'GET',
-      url: new URL(String(input)),
-      headers: new Headers(init?.headers),
-      body: init?.body === undefined ? undefined : JSON.parse(String(init.body)),
-    };
-    seen.push(call);
-    const reply = replies.shift();
-    if (!reply) throw new Error(`unexpected ${call.method} ${call.url.pathname}`);
-    const signal = init?.signal;
-    if (!signal) return reply(call);
-    if (signal.aborted) throw signal.reason;
-    return Promise.race([
-      reply(call),
-      new Promise<never>((_, reject) => {
-        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-      }),
-    ]);
-  }) as typeof globalThis.fetch;
-  return { fetch: fake, seen };
-}
-
-const json = (status: number, body: unknown, headers: Record<string, string> = {}): Reply => {
-  return () =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { 'content-type': 'application/json', ...headers },
-    });
 };
 
 const created = json(201, {

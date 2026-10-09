@@ -11,11 +11,23 @@ export {
 } from './client.ts';
 export { NibifyError, type ApiErrorDetail } from './errors.ts';
 export {
+  Requests,
+  Threads,
+  type RequestListOptions,
+  type Thread,
+  type ThreadGetOptions,
+  type ThreadHistory,
+  type ThreadListOptions,
+  type ThreadMessage,
+} from './lists.ts';
+export {
   RequestHandle,
   type Answered,
   type AskResult,
+  type RequestState,
   type TimedOut,
   type Unanswered,
+  type Withdrawn,
 } from './request.ts';
 export {
   DEFAULT_TOLERANCE_SECONDS,
