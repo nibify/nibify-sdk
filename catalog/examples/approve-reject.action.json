@@ -1,0 +1,16 @@
+{
+  "name": "Approve / reject — the answer coming back",
+  "description": "What the renderer emits when the person taps Approva after typing a note, and what Nibify carries verbatim inside the response envelope of PRD §6.1. surfaceId is the requestId.",
+  "messages": [
+    {
+      "version": "v0.9",
+      "action": {
+        "name": "approve",
+        "surfaceId": "msg_01HXYZ",
+        "sourceComponentId": "approve",
+        "timestamp": "2026-08-10T12:00:00Z",
+        "context": { "note": "vai pure, ma solo ai lead A" }
+      }
+    }
+  ]
+}

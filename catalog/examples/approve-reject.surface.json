@@ -1,0 +1,43 @@
+{
+  "root": "root",
+  "dataModel": { "note": "" },
+  "components": [
+    { "id": "root", "component": "Card", "child": "body" },
+    { "id": "body", "component": "Column", "children": ["title", "detail", "note", "actions"] },
+    { "id": "title", "component": "Text", "text": "Invio email di outreach", "variant": "h4" },
+    {
+      "id": "detail",
+      "component": "Text",
+      "text": "L'agente ha preparato **3 email**. Rivedi e approva."
+    },
+    {
+      "id": "note",
+      "component": "TextField",
+      "label": "Nota (opzionale)",
+      "value": { "path": "/note" },
+      "variant": "longText"
+    },
+    {
+      "id": "actions",
+      "component": "Row",
+      "justify": "spaceBetween",
+      "children": ["reject", "approve"]
+    },
+    {
+      "id": "reject",
+      "component": "Button",
+      "variant": "borderless",
+      "child": "reject-lbl",
+      "action": { "event": { "name": "reject", "context": {} } }
+    },
+    { "id": "reject-lbl", "component": "Text", "text": "Rifiuta" },
+    {
+      "id": "approve",
+      "component": "Button",
+      "variant": "primary",
+      "child": "approve-lbl",
+      "action": { "event": { "name": "approve", "context": { "note": { "path": "/note" } } } }
+    },
+    { "id": "approve-lbl", "component": "Text", "text": "Approva" }
+  ]
+}

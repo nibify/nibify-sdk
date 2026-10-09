@@ -1,0 +1,43 @@
+{
+  "name": "@nibify/catalog",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Nibify UI component catalog: an A2UI-conformant JSON Schema of the components an agent may use in a surface.",
+  "license": "MIT",
+  "type": "module",
+  "main": "catalog.json",
+  "exports": {
+    ".": "./catalog.json",
+    "./min-catalog-version": "./src/min-catalog-version.mjs",
+    "./validator": "./src/validator.mjs",
+    "./a2ui/*": "./vendor/a2ui/*",
+    "./examples/*": "./examples/*"
+  },
+  "files": [
+    "catalog.json",
+    "rules.txt",
+    "src",
+    "examples",
+    "vendor",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "peerDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "peerDependenciesMeta": {
+    "ajv": {
+      "optional": true
+    },
+    "ajv-formats": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}
