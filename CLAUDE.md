@@ -26,6 +26,8 @@ Types are generated from it, the clients are written by hand:
 
 - `pnpm --filter @nibify/sdk generate` regenerates `packages/sdk-ts/src/generated/`, filtered by
   an allow-list on the `agent` tag. Never edit the generated file.
+- The same command regenerates the component constructors from `catalog/catalog.json`;
+  `test/components.test.ts` fails when they are behind it.
 - The contract test (`pnpm test`) fails when the committed types are behind the spec, and when
   an `agent` operation is neither called by the facade nor listed as not yet covered.
 

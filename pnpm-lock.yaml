@@ -62,6 +62,9 @@ importers:
 
   packages/sdk-ts:
     devDependencies:
+      '@nibify/catalog':
+        specifier: workspace:*
+        version: link:../../catalog
       '@types/node':
         specifier: ^20.19.43
         version: 20.19.43

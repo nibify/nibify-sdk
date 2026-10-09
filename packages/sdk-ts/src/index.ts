@@ -41,3 +41,4 @@ export {
   type WebhookResponse,
 } from './webhooks.ts';
 export type { components, operations, paths } from './generated/agent-api.ts';
+export * from './generated/components.ts';
