@@ -4,7 +4,7 @@ The open half of [Nibify](https://github.com/nibify): the component catalog, the
 
 The other half — backend, Flutter app, dashboard, marketing site — is closed and not self-hostable. That is a product decision, not an oversight: the backend is the only thing that can ever be charged for, and self-hosting it would cost Docker, configuration, documented migrations and support before there is a single user.
 
-> **Early.** Both packages here are published placeholders that do nothing yet. The API they will talk to does not exist in public form.
+> **Early.** On npm both packages are still placeholders. In this repo the SDK has `ask()` and `notify()`; the n8n node does nothing yet. The API they talk to does not exist in public form.
 
 ## The workspace
 
@@ -25,6 +25,7 @@ pnpm install
 pnpm typecheck
 pnpm lint
 pnpm format:check
+pnpm test
 ```
 
 ## The configs are copies, and that is deliberate

@@ -1,10 +1,9 @@
-# The same four checks the private repo runs, on the same configs — which is the
+# The same checks the private repo runs, on the same configs — which is the
 # point: `tsconfig.base.json`, `eslint.config.mjs` and `.prettierrc.json` are
 # copied here verbatim rather than published as a package, so the only thing that
 # keeps the two halves from drifting is that both actually run them.
 #
-# No `pnpm test` step yet: nothing here has tests. It arrives with the catalog,
-# which brings its own `node --test` suite.
+# `pnpm test` carries the SDK's contract test against openapi/openapi.json.
 
 name: CI
 
@@ -39,3 +38,5 @@ jobs:
       - run: pnpm lint
 
       - run: pnpm format:check
+
+      - run: pnpm test

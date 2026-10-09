@@ -1,7 +1,20 @@
-// Placeholder. `ask()` and `notify()` arrive with issue #3.
-//
-// The file exists so the shared TypeScript, ESLint and Prettier configs have
-// something to run against from the day they land, instead of being three files
-// nobody has ever executed. It is not published: `files` still ships the README
-// alone, and will keep doing so until there is a build to ship.
-export {};
+export {
+  DEFAULT_BASE_URL,
+  Nibify,
+  type AskOptions,
+  type Environment,
+  type NibifyOptions,
+  type NotificationCreated,
+  type NotifyOptions,
+  type Surface,
+  type WaitOptions,
+} from './client.ts';
+export { NibifyError, type ApiErrorDetail } from './errors.ts';
+export {
+  RequestHandle,
+  type Answered,
+  type AskResult,
+  type TimedOut,
+  type Unanswered,
+} from './request.ts';
+export type { components, operations, paths } from './generated/agent-api.ts';
