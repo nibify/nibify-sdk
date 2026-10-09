@@ -7,9 +7,11 @@ import {
   NodeApiError,
   NodeConnectionTypes,
   NodeOperationError,
+  sleep,
   WAIT_INDEFINITELY,
   type IDataObject,
   type IExecuteFunctions,
+  type INode,
   type INodeExecutionData,
   type INodeType,
   type INodeTypeDescription,
@@ -19,7 +21,7 @@ import {
   type JsonObject,
 } from 'n8n-workflow';
 
-import { apiFailureOf } from './api-error.ts';
+import { apiFailureOf, retryAfterOf } from './api-error.ts';
 import { outcomeOf, readCallback, SIGNATURE_HEADER } from './callback.ts';
 import {
   callOf,
@@ -36,6 +38,7 @@ import {
   type Composed,
   type SimpleButton,
 } from './surface.ts';
+import { isRace, onPendingOfThread, type PendingPage } from './thread.ts';
 import { callbackUrlOf, deadlineOf, type ExpiryUnit } from './waiting.ts';
 
 type Operation = 'askAndWait' | 'sendNotification' | 'cancel' | 'nudge';
@@ -130,6 +133,26 @@ export class Nibify implements INodeType {
         default: 'askAndWait',
       },
       {
+        displayName: 'By',
+        name: 'by',
+        type: 'options',
+        noDataExpression: true,
+        options: [
+          {
+            name: 'Request ID',
+            value: 'requestId',
+            description: 'One request, by the requestId Ask & Wait outputs',
+          },
+          {
+            name: 'Thread Key',
+            value: 'threadKey',
+            description: 'Every pending request of a thread, by the thread key given to Ask & Wait',
+          },
+        ],
+        default: 'requestId',
+        displayOptions: { show: { operation: ['cancel', 'nudge'] } },
+      },
+      {
         displayName: 'Request ID',
         name: 'requestId',
         type: 'string',
@@ -137,7 +160,18 @@ export class Nibify implements INodeType {
         required: true,
         placeholder: 'msg_…',
         description: 'The requestId of a pending request, as Ask & Wait outputs it',
-        displayOptions: { show: { operation: ['cancel', 'nudge'] } },
+        displayOptions: { show: { operation: ['cancel', 'nudge'], by: ['requestId'] } },
+      },
+      {
+        displayName: 'Thread Key',
+        name: 'threadKey',
+        type: 'string',
+        default: '',
+        required: true,
+        placeholder: 'order-1042',
+        description:
+          'The thread key given to Ask & Wait. Every pending request of the thread is acted on; none pending is not an error.',
+        displayOptions: { show: { operation: ['cancel', 'nudge'], by: ['threadKey'] } },
       },
       {
         displayName: 'Sender Name',
@@ -408,11 +442,64 @@ const ONE_CALL: Record<Exclude<Operation, 'askAndWait'>, OneCall> = {
     }
     return call(ctx, itemIndex, 'NotificationsController_create', { body });
   },
-  cancel: async (ctx, itemIndex) =>
-    call(ctx, itemIndex, 'RequestsController_cancel', { id: requestIdOf(ctx, itemIndex) }),
-  nudge: async (ctx, itemIndex) =>
-    call(ctx, itemIndex, 'RequestsController_renotify', { id: requestIdOf(ctx, itemIndex) }),
+  cancel: async (ctx, itemIndex) => onTarget(ctx, itemIndex, 'RequestsController_cancel'),
+  nudge: async (ctx, itemIndex) => onTarget(ctx, itemIndex, 'RequestsController_renotify'),
 };
+
+async function onTarget(
+  ctx: IExecuteFunctions,
+  itemIndex: number,
+  operation: 'RequestsController_cancel' | 'RequestsController_renotify',
+): Promise<IDataObject> {
+  if (ctx.getNodeParameter('by', itemIndex, 'requestId') === 'requestId') {
+    return call(ctx, itemIndex, operation, { id: requestIdOf(ctx, itemIndex) });
+  }
+  const threadKey = (ctx.getNodeParameter('threadKey', itemIndex) as string).trim();
+  if (!threadKey) {
+    throw new NodeOperationError(ctx.getNode(), 'A thread key is required.', { itemIndex });
+  }
+  const outcome = await onPendingOfThread(threadKey, {
+    listPending: async (cursor) => {
+      const sent = await sendPaced(ctx, itemIndex, 'RequestsController_list', {
+        qs: { threadKey, status: 'pending', limit: 100, ...(cursor ? { cursor } : {}) },
+      });
+      if (sent.ok) return sent.body as PendingPage;
+      throw readableError(ctx.getNode(), sent.error, itemIndex);
+    },
+    act: async (id) => {
+      const sent = await sendPaced(ctx, itemIndex, operation, { id });
+      if (sent.ok) return undefined;
+      const failure = apiFailureOf(sent.error);
+      if (failure && isRace(failure)) return failure;
+      throw readableError(ctx.getNode(), sent.error, itemIndex);
+    },
+  });
+  return { ...outcome };
+}
+
+const RATE_LIMITED_ATTEMPTS = 5;
+
+/**
+ * A thread can hold more pending requests than the project may call per second: a `429`
+ * did nothing, so the call is made again after its `Retry-After`.
+ */
+async function sendPaced<O extends CoveredOperation>(
+  ctx: IExecuteFunctions,
+  itemIndex: number,
+  operation: O,
+  input: CallInput,
+): Promise<{ ok: true; body: SuccessBody<O> } | { ok: false; error: unknown }> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return { ok: true, body: await send(ctx, itemIndex, operation, input) };
+    } catch (error) {
+      if (apiFailureOf(error)?.code !== 'rate_limited' || attempt === RATE_LIMITED_ATTEMPTS) {
+        return { ok: false, error };
+      }
+      await sleep((retryAfterOf(error) ?? 1) * 1000);
+    }
+  }
+}
 
 type Priority = 'low' | 'normal' | 'high';
 
@@ -505,33 +592,53 @@ async function askAndWait(ctx: IExecuteFunctions): Promise<INodeExecutionData[][
   return [[], items];
 }
 
+interface CallInput {
+  id?: string;
+  body?: object;
+  qs?: IDataObject;
+}
+
 async function call<O extends CoveredOperation>(
   ctx: IExecuteFunctions,
   itemIndex: number,
   operation: O,
-  { id, body }: { id?: string; body?: object },
+  input: CallInput,
 ): Promise<SuccessBody<O> & IDataObject> {
-  const node = ctx.getNode();
+  try {
+    return await send(ctx, itemIndex, operation, input);
+  } catch (error) {
+    throw readableError(ctx.getNode(), error, itemIndex);
+  }
+}
+
+/** The call as n8n's helper makes it: a failure is the helper's error, not yet readable. */
+async function send<O extends CoveredOperation>(
+  ctx: IExecuteFunctions,
+  itemIndex: number,
+  operation: O,
+  { id, body, qs }: CallInput,
+): Promise<SuccessBody<O> & IDataObject> {
   const { baseUrl } = await ctx.getCredentials<NibifyCredentials>('nibifyApi', itemIndex);
   const { method, url } = callOf(baseUrl, operation, id);
-  try {
-    return (await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'nibifyApi', {
-      method,
-      url,
-      ...(body ? { body: body as IDataObject } : {}),
-      json: true,
-    })) as SuccessBody<O> & IDataObject;
-  } catch (error) {
-    const failure = apiFailureOf(error);
-    if (!failure) throw new NodeApiError(node, error as JsonObject, { itemIndex });
-    // A fresh error and not a re-wrap: `NodeApiError` hands back one it is given unchanged,
-    // and that one carries n8n's generic sentence for the status instead of the API's.
-    const { httpCode } = error as { httpCode?: string | null };
-    throw new NodeApiError(node, { error: failure } as JsonObject, {
-      message: failure.message,
-      description: `Nibify error code: ${failure.code}`,
-      ...(httpCode ? { httpCode } : {}),
-      itemIndex,
-    });
-  }
+  return (await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'nibifyApi', {
+    method,
+    url,
+    ...(body ? { body: body as IDataObject } : {}),
+    ...(qs ? { qs } : {}),
+    json: true,
+  })) as SuccessBody<O> & IDataObject;
+}
+
+function readableError(node: INode, error: unknown, itemIndex: number): Error {
+  const failure = apiFailureOf(error);
+  if (!failure) return new NodeApiError(node, error as JsonObject, { itemIndex });
+  // A fresh error and not a re-wrap: `NodeApiError` hands back one it is given unchanged,
+  // and that one carries n8n's generic sentence for the status instead of the API's.
+  const { httpCode } = error as { httpCode?: string | null };
+  return new NodeApiError(node, { error: failure } as JsonObject, {
+    message: failure.message,
+    description: `Nibify error code: ${failure.code}`,
+    ...(httpCode ? { httpCode } : {}),
+    itemIndex,
+  });
 }

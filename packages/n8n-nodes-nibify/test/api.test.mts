@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { apiFailureOf } from '../nodes/Nibify/api-error.ts';
+import { apiFailureOf, retryAfterOf } from '../nodes/Nibify/api-error.ts';
 import { callOf } from '../nodes/Nibify/operations.ts';
 
 describe('callOf', () => {
@@ -40,5 +40,20 @@ describe('apiFailureOf', () => {
     assert.equal(apiFailureOf(new Error('ECONNREFUSED')), undefined);
     assert.equal(apiFailureOf({ context: { data: { message: 'Bad Gateway' } } }), undefined);
     assert.equal(apiFailureOf(null), undefined);
+  });
+});
+
+describe('retryAfterOf', () => {
+  test("reads the seconds of a 429's Retry-After from the axios error the helper wraps", () => {
+    assert.equal(retryAfterOf({ cause: { response: { headers: { 'retry-after': '2' } } } }), 2);
+  });
+
+  test('is undefined without a usable header', () => {
+    assert.equal(retryAfterOf({ cause: { response: { headers: {} } } }), undefined);
+    assert.equal(
+      retryAfterOf({ cause: { response: { headers: { 'retry-after': '0' } } } }),
+      undefined,
+    );
+    assert.equal(retryAfterOf(new Error('ECONNREFUSED')), undefined);
   });
 });
