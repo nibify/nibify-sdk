@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { describe, test } from 'node:test';
 
-import { outcomeOf, readCallback, type CallbackEvent } from '../nodes/Nibify/callback.ts';
+import {
+  outcomeOf,
+  readCallback,
+  type CallbackEvent,
+  type TerminalStatus,
+} from '../nodes/Nibify/callback.ts';
 
 const SECRET = 'whsec_' + 'ab'.repeat(32);
 const NOW = new Date('2026-10-09T12:00:00Z');
@@ -12,28 +17,41 @@ function sign(body: string, t = T, secret = SECRET): string {
   return `t=${t},v1=${createHmac('sha256', secret).update(`${t}.${body}`).digest('hex')}`;
 }
 
-function event(status: CallbackEvent['data']['status']): CallbackEvent {
-  return {
+const EVENTS: { [Type in CallbackEvent['type']]: Extract<CallbackEvent, { type: Type }> } = {
+  'message.answered': {
     id: 'evt_01',
-    type: `message.${status}`,
+    type: 'message.answered',
     createdAt: NOW.toISOString(),
     data: {
       requestId: 'msg_01',
-      status,
+      status: 'answered',
       environment: 'test',
-      response:
-        status === 'answered'
-          ? {
-              responseId: 'res_01',
-              actionName: 'approve',
-              sourceComponentId: 'button-1',
-              context: { note: 'only lead A' },
-              clientTimestamp: NOW.toISOString(),
-              answeredAt: NOW.toISOString(),
-            }
-          : null,
+      response: {
+        responseId: 'res_01',
+        actionName: 'approve',
+        sourceComponentId: 'button-1',
+        context: { note: 'only lead A' },
+        clientTimestamp: NOW.toISOString(),
+        answeredAt: NOW.toISOString(),
+      },
     },
+  },
+  'message.expired': unanswered('expired'),
+  'message.dismissed': unanswered('dismissed'),
+  'message.cancelled': unanswered('cancelled'),
+};
+
+function unanswered<Status extends Exclude<TerminalStatus, 'answered'>>(status: Status) {
+  return {
+    id: 'evt_01',
+    type: `message.${status}` as const,
+    createdAt: NOW.toISOString(),
+    data: { requestId: 'msg_01', status, environment: 'test' as const, response: null },
   };
+}
+
+function event(status: TerminalStatus): CallbackEvent {
+  return EVENTS[`message.${status}`];
 }
 
 describe('readCallback', () => {

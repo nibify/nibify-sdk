@@ -38,6 +38,7 @@ export {
   type VerifyOptions,
   type WebhookEvent,
   type WebhookEventType,
+  type WebhookEvents,
   type WebhookResponse,
 } from './webhooks.ts';
 export type { components, operations, paths } from './generated/agent-api.ts';

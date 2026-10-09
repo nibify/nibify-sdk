@@ -3,8 +3,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
+import { CALLBACK_EVENTS, type CallbackEvent } from '../nodes/Nibify/callback.ts';
 import { ROUTES } from '../nodes/Nibify/operations.ts';
-import { agentOperations, generateTypes, readSpec, TYPES_PATH } from '../scripts/agent-types.mts';
+import {
+  agentOperations,
+  agentWebhooks,
+  generateTypes,
+  readSpec,
+  TYPES_PATH,
+} from '../scripts/agent-types.mts';
 
 /** Operations of the `agent` tag the node does not call: none of its four operations needs them. */
 const NOT_YET_COVERED = [
@@ -34,6 +41,56 @@ test('a field changed in the spec changes the generated types', async () => {
   };
   create.properties['callbackUrl'] = { type: 'integer' };
   assert.notEqual(await generateTypes(changed), await generateTypes(spec));
+});
+
+/** Events of the `agent` tag a callback never carries: they go only to a `WebhookEndpoint`. */
+const NOT_A_CALLBACK = ['message.delivered', 'message.read'];
+
+test('a field renamed in an event changes the generated types', async () => {
+  const spec = await readSpec();
+  const changed = structuredClone(spec);
+  const answered = changed.components?.schemas?.['MessageAnsweredEvent'] as {
+    properties: Record<string, { properties: Record<string, unknown> }>;
+  };
+  const data = answered.properties['data']?.properties ?? {};
+  data['requestID'] = data['requestId'];
+  delete data['requestId'];
+  assert.notEqual(await generateTypes(changed), await generateTypes(spec));
+});
+
+test('every event of the agent tag is a callback the node reads, or listed as not one', async () => {
+  const inSpec = agentWebhooks(await readSpec()).map(({ event }) => event);
+  const read: string[] = [...CALLBACK_EVENTS];
+
+  assert.deepEqual(
+    inSpec.filter((event) => !read.includes(event) && !NOT_A_CALLBACK.includes(event)),
+    [],
+    'not read and not listed',
+  );
+  assert.deepEqual(
+    [...read, ...NOT_A_CALLBACK].filter((event) => !inSpec.includes(event)),
+    [],
+    'read or listed, but not an agent event in the spec',
+  );
+  assert.deepEqual(
+    read.filter((event) => NOT_A_CALLBACK.includes(event)),
+    [],
+    'read, so it leaves NOT_A_CALLBACK',
+  );
+});
+
+test('an event that does not answer carries no response', () => {
+  const answer = {
+    responseId: 'res_01',
+    actionName: 'approve',
+    sourceComponentId: 'button-1',
+    context: null,
+    clientTimestamp: '2026-10-09T12:00:00.000Z',
+    answeredAt: '2026-10-09T12:00:00.000Z',
+  };
+  // @ts-expect-error an expired Request carries no Response
+  const response: Extract<CallbackEvent, { type: 'message.expired' }>['data']['response'] = answer;
+  assert.equal(response, answer);
 });
 
 test('every operation of the agent tag is covered by the node, or listed as not yet', async () => {
