@@ -3,7 +3,7 @@
 # copied here verbatim rather than published as a package, so the only thing that
 # keeps the two halves from drifting is that both actually run them.
 #
-# `pnpm test` carries the SDK's contract test against openapi/openapi.json.
+# `pnpm test` carries the contract tests of both clients against openapi/openapi.json.
 
 name: CI
 
