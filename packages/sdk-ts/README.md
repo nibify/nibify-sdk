@@ -35,6 +35,35 @@ for await (const pending of nibify.requests.list({ status: 'pending' })) {
 
 - `client.environment` è `test` o `live`, dedotto dal prefisso della chiave.
 
+## Costruttori dei componenti
+
+Un costruttore per ogni componente del catalogo — `Text`, `Button`, `ChoicePicker`, `TextField` e gli altri — con le prop tipizzate. Restituiscono esattamente il JSON che scriveresti a mano, quindi si mescolano col JSON e `ask()` accetta l'uno e l'altro:
+
+```ts
+import { Button, Card, Column, Text, TextField } from '@nibify/sdk';
+
+const surface = {
+  root: 'root',
+  dataModel: { note: '' },
+  components: [
+    Card('root', { child: 'body' }),
+    Column('body', { children: ['title', 'note', 'approve'] }),
+    Text('title', { text: 'Invio email di outreach', variant: 'h4' }),
+    TextField('note', { label: 'Nota (opzionale)', value: { path: '/note' }, variant: 'longText' }),
+    Button('approve', {
+      variant: 'primary',
+      child: 'approve-lbl',
+      action: { event: { name: 'approve', context: { note: { path: '/note' } } } },
+    }),
+    Text('approve-lbl', { text: 'Approva' }),
+  ],
+};
+```
+
+- Il primo argomento è l'`id`; i figli si nominano per `id`, come in A2UI.
+- Non c'è un `Form`: un form è una `Column` (o una `Card`) di input con un `Button` il cui `action.context` raccoglie i path dei campi.
+- Sono generati da `catalog/catalog.json`: un componente nuovo nel catalogo è un costruttore nuovo qui.
+
 ## Callback e webhook
 
 Se passi `callbackUrl` a `ask()`, o hai un `WebhookEndpoint`, Nibify ti chiama con un corpo firmato. `webhooks.verify()` controlla la firma e restituisce l'evento:

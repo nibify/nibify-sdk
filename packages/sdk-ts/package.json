@@ -35,13 +35,14 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/**/*.test.ts\"",
-    "generate": "node scripts/agent-types.ts"
+    "generate": "node scripts/agent-types.ts && node scripts/components.ts"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "devDependencies": {
+    "@nibify/catalog": "workspace:*",
     "@types/node": "^20.19.43",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.6",
