@@ -16,8 +16,6 @@ export default [
       ...rules,
       // package.json is parsed as one TypeScript expression statement, like n8n's own config does.
       '@typescript-eslint/no-unused-expressions': 'off',
-      // n8n wants an author email; which address faces the n8n submission is decided in #6.
-      '@n8n/community-nodes/valid-author': 'off',
     },
     languageOptions: {
       parser: tseslint.parser,

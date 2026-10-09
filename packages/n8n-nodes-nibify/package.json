@@ -1,9 +1,12 @@
 {
   "name": "n8n-nodes-nibify",
   "version": "0.0.2",
-  "description": "The Nibify community node for n8n: send an interactive request to a person's phone and wait for the answer.",
+  "description": "The Nibify community node for n8n: ask a person on their phone and wait for the answer, or send them a notification.",
   "license": "MIT",
-  "author": "Nibify",
+  "author": {
+    "name": "Francesco Fera",
+    "email": "francescofera157@gmail.com"
+  },
   "homepage": "https://github.com/nibify/nibify-sdk/tree/main/packages/n8n-nodes-nibify",
   "repository": {
     "type": "git",

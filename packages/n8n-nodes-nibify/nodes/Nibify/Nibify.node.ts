@@ -1,6 +1,7 @@
 /**
- * The Nibify node. Ask & Wait creates a Request whose `callbackUrl` is this execution's
- * resume URL, and waits without holding a worker (PRD §4.7, ADR-0014).
+ * The Nibify node (PRD §4.7). Ask & Wait creates a Request whose `callbackUrl` is this
+ * execution's resume URL, and waits without holding a worker (ADR-0014); Send Notification,
+ * Cancel and Nudge are one call each.
  */
 import {
   NodeApiError,
@@ -18,10 +19,39 @@ import {
   type JsonObject,
 } from 'n8n-workflow';
 
+import { apiFailureOf } from './api-error.ts';
 import { outcomeOf, readCallback, SIGNATURE_HEADER } from './callback.ts';
-import { ROUTES, type CreateRequestBody, type QuickAction } from './operations.ts';
-import { composeSimple, parseSurface, type Composed, type SimpleButton } from './surface.ts';
+import {
+  callOf,
+  type CoveredOperation,
+  type CreateNotificationBody,
+  type CreateRequestBody,
+  type QuickAction,
+  type SuccessBody,
+} from './operations.ts';
+import {
+  composeNotice,
+  composeSimple,
+  parseSurface,
+  type Composed,
+  type SimpleButton,
+} from './surface.ts';
 import { callbackUrlOf, deadlineOf, type ExpiryUnit } from './waiting.ts';
+
+type Operation = 'askAndWait' | 'sendNotification' | 'cancel' | 'nudge';
+
+const SINGLE_OUTPUT: Operation[] = ['sendNotification', 'cancel', 'nudge'];
+
+const OPERATION_NAMES: Record<Operation, string> = {
+  askAndWait: 'Ask & Wait',
+  sendNotification: 'Send Notification',
+  cancel: 'Cancel',
+  nudge: 'Nudge',
+};
+
+const COMPOSING: Operation[] = ['askAndWait', 'sendNotification'];
+
+const SUBTITLE = `={{ ${JSON.stringify(OPERATION_NAMES)}[$parameter.operation ?? "askAndWait"] }}`;
 
 interface NibifyCredentials {
   apiKey: string;
@@ -42,6 +72,11 @@ const RESUME_WEBHOOKS: IWebhookDescription[] = [
   },
 ];
 
+// Not Answered comes first: when n8n's own wait limit fires before any callback, it resumes
+// the node as disabled and passes the input item out of output 0. That item must not read
+// as an answer. n8n saves no parameter left at its default: an absent `operation` is Ask & Wait.
+const OUTPUTS: INodeTypeDescription['outputs'] = `={{ ${JSON.stringify(SINGLE_OUTPUT)}.includes($parameter.operation) ? ["main"] : [{ type: "main", displayName: "Not Answered" }, { type: "main", displayName: "Answered" }] }}`;
+
 // eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool -- n8n-workflow types no `usableAsTool: false`, and an agent's tool call that pauses the execution is unverified.
 export class Nibify implements INodeType {
   description: INodeTypeDescription = {
@@ -50,15 +85,11 @@ export class Nibify implements INodeType {
     icon: { light: 'file:nibify.svg', dark: 'file:nibify.dark.svg' },
     group: ['transform'],
     version: 1,
-    subtitle: '={{ $parameter["operation"] === "askAndWait" ? "Ask & Wait" : "" }}',
-    description: 'Ask a person on their phone, and wait for the answer',
+    subtitle: SUBTITLE,
+    description: 'Ask a person on their phone and wait for the answer, or just tell them',
     defaults: { name: 'Nibify' },
     inputs: [NodeConnectionTypes.Main],
-    // Not Answered comes first: when n8n's own wait limit fires before any callback, it
-    // resumes the node as disabled and passes the input item out of output 0. That item
-    // must not read as an answer.
-    outputs: [NodeConnectionTypes.Main, NodeConnectionTypes.Main],
-    outputNames: ['Not Answered', 'Answered'],
+    outputs: OUTPUTS,
     credentials: [{ name: 'nibifyApi', required: true }],
     webhooks: RESUME_WEBHOOKS,
     properties: [
@@ -75,8 +106,38 @@ export class Nibify implements INodeType {
             description:
               'Send a request to the phone and pause the workflow until it is answered, dismissed, cancelled or expired',
           },
+          {
+            name: 'Cancel',
+            value: 'cancel',
+            action: 'Cancel a pending request',
+            description:
+              'Withdraw a request nobody has answered yet. A workflow waiting on it resumes as cancelled.',
+          },
+          {
+            name: 'Nudge',
+            value: 'nudge',
+            action: 'Nudge a pending request',
+            description: 'Send the push of a pending request again, without changing the request',
+          },
+          {
+            name: 'Send Notification',
+            value: 'sendNotification',
+            action: 'Send a notification',
+            description:
+              'Tell the person something on their phone. Nothing is asked and nothing is awaited.',
+          },
         ],
         default: 'askAndWait',
+      },
+      {
+        displayName: 'Request ID',
+        name: 'requestId',
+        type: 'string',
+        default: '',
+        required: true,
+        placeholder: 'msg_…',
+        description: 'The requestId of a pending request, as Ask & Wait outputs it',
+        displayOptions: { show: { operation: ['cancel', 'nudge'] } },
       },
       {
         displayName: 'Sender Name',
@@ -84,7 +145,8 @@ export class Nibify implements INodeType {
         type: 'string',
         default: 'n8n',
         required: true,
-        description: 'Who is asking, as the person sees it on the request',
+        description: 'Who is asking or telling, as the person sees it on the phone',
+        displayOptions: { show: { operation: COMPOSING } },
       },
       {
         displayName: 'Composition',
@@ -104,6 +166,7 @@ export class Nibify implements INodeType {
           },
         ],
         default: 'simple',
+        displayOptions: { show: { operation: COMPOSING } },
       },
       {
         displayName: 'Title',
@@ -111,8 +174,8 @@ export class Nibify implements INodeType {
         type: 'string',
         default: '',
         required: true,
-        description: 'The question, also the title of the push notification',
-        displayOptions: { show: { composition: ['simple'] } },
+        description: 'The title of the card, also the title of the push notification',
+        displayOptions: { show: { operation: COMPOSING, composition: ['simple'] } },
       },
       {
         displayName: 'Text',
@@ -122,7 +185,7 @@ export class Nibify implements INodeType {
         default: '',
         description:
           'Details under the title, also the body of the push notification. Simple Markdown is rendered.',
-        displayOptions: { show: { composition: ['simple'] } },
+        displayOptions: { show: { operation: COMPOSING, composition: ['simple'] } },
       },
       {
         displayName: 'Buttons',
@@ -136,7 +199,7 @@ export class Nibify implements INodeType {
             { label: 'Reject', action: 'reject', style: 'default' },
           ],
         },
-        displayOptions: { show: { composition: ['simple'] } },
+        displayOptions: { show: { operation: ['askAndWait'], composition: ['simple'] } },
         options: [
           {
             name: 'button',
@@ -178,8 +241,8 @@ export class Nibify implements INodeType {
         default: '{\n  "root": "root",\n  "dataModel": {},\n  "components": []\n}',
         required: true,
         description:
-          'The A2UI surface: "root", "dataModel" and the flat list of "components" of the Nibify catalog',
-        displayOptions: { show: { composition: ['json'] } },
+          'The A2UI surface: "root", "dataModel" and the flat list of "components" of the Nibify catalog. A notification\'s surface dispatches no action.',
+        displayOptions: { show: { operation: COMPOSING, composition: ['json'] } },
       },
       {
         displayName: 'Notification Title',
@@ -187,7 +250,7 @@ export class Nibify implements INodeType {
         type: 'string',
         default: '',
         required: true,
-        displayOptions: { show: { composition: ['json'] } },
+        displayOptions: { show: { operation: COMPOSING, composition: ['json'] } },
       },
       {
         displayName: 'Notification Body',
@@ -195,7 +258,7 @@ export class Nibify implements INodeType {
         type: 'string',
         default: '',
         required: true,
-        displayOptions: { show: { composition: ['json'] } },
+        displayOptions: { show: { operation: COMPOSING, composition: ['json'] } },
       },
       {
         displayName: 'Lock Screen Buttons',
@@ -206,7 +269,7 @@ export class Nibify implements INodeType {
         default: {},
         description:
           'Buttons on the push notification. Each name must be an action the surface dispatches.',
-        displayOptions: { show: { composition: ['json'] } },
+        displayOptions: { show: { operation: ['askAndWait'], composition: ['json'] } },
         options: [
           {
             name: 'quickAction',
@@ -226,6 +289,7 @@ export class Nibify implements INodeType {
         default: 0,
         description:
           'How long the person has to answer. 0 means the request never expires and the workflow waits for as long as it takes.',
+        displayOptions: { show: { operation: ['askAndWait'] } },
       },
       {
         displayName: 'Expires After Unit',
@@ -237,7 +301,7 @@ export class Nibify implements INodeType {
           { name: 'Days', value: 'days' },
         ],
         default: 'hours',
-        displayOptions: { hide: { expiresAfter: [0] } },
+        displayOptions: { show: { operation: ['askAndWait'] }, hide: { expiresAfter: [0] } },
       },
       {
         displayName: 'Options',
@@ -245,6 +309,7 @@ export class Nibify implements INodeType {
         type: 'collection',
         placeholder: 'Add Option',
         default: {},
+        displayOptions: { show: { operation: COMPOSING } },
         options: [
           {
             displayName: 'Lock Screen Buttons',
@@ -253,6 +318,7 @@ export class Nibify implements INodeType {
             default: true,
             description:
               'Whether the buttons also appear on the push notification, answerable without opening the app (Simple composition only)',
+            displayOptions: { show: { '/operation': ['askAndWait'] } },
           },
           {
             displayName: 'Priority',
@@ -278,80 +344,24 @@ export class Nibify implements INodeType {
   };
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+    const operation = this.getNodeParameter('operation', 0, 'askAndWait') as Operation;
+    if (operation === 'askAndWait') return askAndWait(this);
+
     const items = this.getInputData();
-    const node = this.getNode();
-
-    let composed: Composed;
-    let notification: CreateRequestBody['notification'];
-    try {
-      if (this.getNodeParameter('composition', 0) === 'simple') {
-        const title = this.getNodeParameter('title', 0) as string;
-        const text = this.getNodeParameter('text', 0, '') as string;
-        const buttons = this.getNodeParameter('buttons.button', 0, []) as SimpleButton[];
-        composed = composeSimple({ title, text, buttons });
-        notification = { title: title.trim(), body: text.trim() || title.trim() };
-        if (this.getNodeParameter('options.lockScreenButtons', 0, true) as boolean) {
-          notification.quickActions = composed.quickActions;
-        }
-      } else {
-        const quickActions = this.getNodeParameter(
-          'quickActions.quickAction',
-          0,
-          [],
-        ) as QuickAction[];
-        composed = { surface: parseSurface(this.getNodeParameter('surface', 0)), quickActions };
-        notification = {
-          title: this.getNodeParameter('notificationTitle', 0) as string,
-          body: this.getNodeParameter('notificationBody', 0) as string,
-          ...(quickActions.length > 0 ? { quickActions } : {}),
-        };
+    const out: INodeExecutionData[] = [];
+    for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+      const pairedItem = { item: itemIndex };
+      if (!this.continueOnFail()) {
+        out.push({ json: await ONE_CALL[operation](this, itemIndex), pairedItem });
+        continue;
       }
-    } catch (error) {
-      throw new NodeOperationError(node, error as Error);
+      try {
+        out.push({ json: await ONE_CALL[operation](this, itemIndex), pairedItem });
+      } catch (error) {
+        out.push({ json: { error: (error as Error).message }, pairedItem });
+      }
     }
-
-    let deadline: ReturnType<typeof deadlineOf>;
-    try {
-      deadline = deadlineOf(
-        this.getNodeParameter('expiresAfter', 0, 0) as number,
-        this.getNodeParameter('expiresAfterUnit', 0, 'hours') as ExpiryUnit,
-        new Date(),
-      );
-    } catch (error) {
-      throw new NodeOperationError(node, error as Error);
-    }
-
-    const priority = this.getNodeParameter('options.priority', 0, 'normal') as
-      'low' | 'normal' | 'high';
-    const threadKey = this.getNodeParameter('options.threadKey', 0, '') as string;
-    const resumeUrl = this.evaluateExpression('{{ $execution.resumeUrl }}', 0) as string;
-
-    const body: CreateRequestBody = {
-      sender: { name: this.getNodeParameter('senderName', 0) as string },
-      notification,
-      priority,
-      surface: composed.surface,
-      callbackUrl: callbackUrlOf(resumeUrl, node.id),
-      ...(threadKey ? { threadKey } : {}),
-      ...(deadline ? { expiresAt: deadline.expiresAt.toISOString() } : {}),
-    };
-
-    const { baseUrl } = await this.getCredentials<NibifyCredentials>('nibifyApi');
-    try {
-      await this.helpers.httpRequestWithAuthentication.call(this, 'nibifyApi', {
-        method: 'POST',
-        url: baseUrl.replace(/\/+$/, '') + ROUTES.RequestsController_create.path,
-        body,
-        json: true,
-      });
-    } catch (error) {
-      throw new NodeApiError(node, error as JsonObject);
-    }
-
-    // A callback can arrive before this execution is saved as waiting; n8n answers it
-    // 409 and the API retries it (ADR-0014), so the order here cannot lose an outcome.
-    await this.putExecutionToWait(deadline?.waitTill ?? WAIT_INDEFINITELY);
-    return [[], items];
+    return [out];
   }
 
   async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
@@ -375,5 +385,153 @@ export class Nibify implements INodeType {
     const toItems = (rows: IDataObject[]): INodeExecutionData[] =>
       rows.map((json) => ({ json, pairedItem: { item: 0 } }));
     return { workflowData: [toItems(notAnswered), toItems(answered)] };
+  }
+}
+
+type OneCall = (ctx: IExecuteFunctions, itemIndex: number) => Promise<IDataObject>;
+
+/** Not retried: the API takes no `Idempotency-Key` here, so a retry could ring twice. */
+const ONE_CALL: Record<Exclude<Operation, 'askAndWait'>, OneCall> = {
+  sendNotification: async (ctx, itemIndex) => {
+    const node = ctx.getNode();
+    let body: CreateNotificationBody;
+    try {
+      body = {
+        sender: { name: ctx.getNodeParameter('senderName', itemIndex) as string },
+        ...notificationOf(ctx, itemIndex),
+        priority: ctx.getNodeParameter('options.priority', itemIndex, 'normal') as Priority,
+      };
+      const threadKey = ctx.getNodeParameter('options.threadKey', itemIndex, '') as string;
+      if (threadKey) body.threadKey = threadKey;
+    } catch (error) {
+      throw new NodeOperationError(node, error as Error, { itemIndex });
+    }
+    return call(ctx, itemIndex, 'NotificationsController_create', { body });
+  },
+  cancel: async (ctx, itemIndex) =>
+    call(ctx, itemIndex, 'RequestsController_cancel', { id: requestIdOf(ctx, itemIndex) }),
+  nudge: async (ctx, itemIndex) =>
+    call(ctx, itemIndex, 'RequestsController_renotify', { id: requestIdOf(ctx, itemIndex) }),
+};
+
+type Priority = 'low' | 'normal' | 'high';
+
+function notificationOf(
+  ctx: IExecuteFunctions,
+  itemIndex: number,
+): Pick<CreateNotificationBody, 'notification' | 'surface'> {
+  if (ctx.getNodeParameter('composition', itemIndex) === 'simple') {
+    const title = ctx.getNodeParameter('title', itemIndex) as string;
+    const text = ctx.getNodeParameter('text', itemIndex, '') as string;
+    return {
+      notification: { title: title.trim(), body: text.trim() || title.trim() },
+      surface: composeNotice({ title, text }),
+    };
+  }
+  return {
+    notification: {
+      title: ctx.getNodeParameter('notificationTitle', itemIndex) as string,
+      body: ctx.getNodeParameter('notificationBody', itemIndex) as string,
+    },
+    surface: parseSurface(ctx.getNodeParameter('surface', itemIndex)),
+  };
+}
+
+function requestIdOf(ctx: IExecuteFunctions, itemIndex: number): string {
+  const id = (ctx.getNodeParameter('requestId', itemIndex) as string).trim();
+  if (!id) throw new NodeOperationError(ctx.getNode(), 'A request ID is required.', { itemIndex });
+  return id;
+}
+
+async function askAndWait(ctx: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+  const items = ctx.getInputData();
+  const node = ctx.getNode();
+
+  let composed: Composed;
+  let notification: CreateRequestBody['notification'];
+  try {
+    if (ctx.getNodeParameter('composition', 0) === 'simple') {
+      const title = ctx.getNodeParameter('title', 0) as string;
+      const text = ctx.getNodeParameter('text', 0, '') as string;
+      const buttons = ctx.getNodeParameter('buttons.button', 0, []) as SimpleButton[];
+      composed = composeSimple({ title, text, buttons });
+      notification = { title: title.trim(), body: text.trim() || title.trim() };
+      if (ctx.getNodeParameter('options.lockScreenButtons', 0, true) as boolean) {
+        notification.quickActions = composed.quickActions;
+      }
+    } else {
+      const quickActions = ctx.getNodeParameter('quickActions.quickAction', 0, []) as QuickAction[];
+      composed = { surface: parseSurface(ctx.getNodeParameter('surface', 0)), quickActions };
+      notification = {
+        title: ctx.getNodeParameter('notificationTitle', 0) as string,
+        body: ctx.getNodeParameter('notificationBody', 0) as string,
+        ...(quickActions.length > 0 ? { quickActions } : {}),
+      };
+    }
+  } catch (error) {
+    throw new NodeOperationError(node, error as Error);
+  }
+
+  let deadline: ReturnType<typeof deadlineOf>;
+  try {
+    deadline = deadlineOf(
+      ctx.getNodeParameter('expiresAfter', 0, 0) as number,
+      ctx.getNodeParameter('expiresAfterUnit', 0, 'hours') as ExpiryUnit,
+      new Date(),
+    );
+  } catch (error) {
+    throw new NodeOperationError(node, error as Error);
+  }
+
+  const priority = ctx.getNodeParameter('options.priority', 0, 'normal') as Priority;
+  const threadKey = ctx.getNodeParameter('options.threadKey', 0, '') as string;
+  const resumeUrl = ctx.evaluateExpression('{{ $execution.resumeUrl }}', 0) as string;
+
+  const body: CreateRequestBody = {
+    sender: { name: ctx.getNodeParameter('senderName', 0) as string },
+    notification,
+    priority,
+    surface: composed.surface,
+    callbackUrl: callbackUrlOf(resumeUrl, node.id),
+    ...(threadKey ? { threadKey } : {}),
+    ...(deadline ? { expiresAt: deadline.expiresAt.toISOString() } : {}),
+  };
+
+  await call(ctx, 0, 'RequestsController_create', { body });
+
+  // A callback can arrive before this execution is saved as waiting; n8n answers it
+  // 409 and the API retries it (ADR-0014), so the order here cannot lose an outcome.
+  await ctx.putExecutionToWait(deadline?.waitTill ?? WAIT_INDEFINITELY);
+  return [[], items];
+}
+
+async function call<O extends CoveredOperation>(
+  ctx: IExecuteFunctions,
+  itemIndex: number,
+  operation: O,
+  { id, body }: { id?: string; body?: object },
+): Promise<SuccessBody<O> & IDataObject> {
+  const node = ctx.getNode();
+  const { baseUrl } = await ctx.getCredentials<NibifyCredentials>('nibifyApi', itemIndex);
+  const { method, url } = callOf(baseUrl, operation, id);
+  try {
+    return (await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'nibifyApi', {
+      method,
+      url,
+      ...(body ? { body: body as IDataObject } : {}),
+      json: true,
+    })) as SuccessBody<O> & IDataObject;
+  } catch (error) {
+    const failure = apiFailureOf(error);
+    if (!failure) throw new NodeApiError(node, error as JsonObject, { itemIndex });
+    // A fresh error and not a re-wrap: `NodeApiError` hands back one it is given unchanged,
+    // and that one carries n8n's generic sentence for the status instead of the API's.
+    const { httpCode } = error as { httpCode?: string | null };
+    throw new NodeApiError(node, { error: failure } as JsonObject, {
+      message: failure.message,
+      description: `Nibify error code: ${failure.code}`,
+      ...(httpCode ? { httpCode } : {}),
+      itemIndex,
+    });
   }
 }

@@ -6,13 +6,10 @@ import { test } from 'node:test';
 import { ROUTES } from '../nodes/Nibify/operations.ts';
 import { agentOperations, generateTypes, readSpec, TYPES_PATH } from '../scripts/agent-types.mts';
 
-/** Operations of the `agent` tag the node does not call yet. #23 takes cancel, nudge and notify. */
+/** Operations of the `agent` tag the node does not call: none of its four operations needs them. */
 const NOT_YET_COVERED = [
   'RequestsController_read',
   'RequestsController_awaitResponse',
-  'RequestsController_cancel',
-  'RequestsController_renotify',
-  'NotificationsController_create',
   'ThreadsController_list',
   'ThreadsController_read',
 ];

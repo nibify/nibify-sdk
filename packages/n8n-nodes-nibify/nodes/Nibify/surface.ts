@@ -1,6 +1,6 @@
 /**
- * The Simple composition mode: a title, a text and buttons, turned into an A2UI surface
- * that conforms to the Nibify catalog (ADR-0001), plus the matching quick actions.
+ * The Simple composition mode: a title, a text and buttons — or no buttons, for a
+ * notification — turned into an A2UI surface that conforms to the Nibify catalog (ADR-0001).
  */
 import type { QuickAction, Surface } from './operations.ts';
 
@@ -12,9 +12,12 @@ export interface SimpleButton {
   style: ButtonStyle;
 }
 
-export interface SimpleCard {
+export interface SimpleNotice {
   title: string;
   text: string;
+}
+
+export interface SimpleCard extends SimpleNotice {
   buttons: SimpleButton[];
 }
 
@@ -24,9 +27,7 @@ export interface Composed {
 }
 
 export function composeSimple(card: SimpleCard): Composed {
-  const title = card.title.trim();
-  const text = card.text.trim();
-  if (!title) throw new Error('A title is required.');
+  const title = requiredTitle(card.title);
   if (card.buttons.length === 0) throw new Error('Add at least one button.');
 
   const seen = new Set<string>();
@@ -51,28 +52,43 @@ export function composeSimple(card: SimpleCard): Composed {
   ]);
 
   return {
-    surface: {
-      root: 'root',
-      dataModel: {},
-      components: [
-        { id: 'root', component: 'Card', child: 'body' },
-        {
-          id: 'body',
-          component: 'Column',
-          children: text ? ['title', 'text', 'actions'] : ['title', 'actions'],
-        },
-        { id: 'title', component: 'Text', text: title, variant: 'h4' },
-        ...(text ? [{ id: 'text', component: 'Text', text }] : []),
-        {
-          id: 'actions',
-          component: 'Row',
-          justify: 'end',
-          children: card.buttons.map((_, index) => `button-${index}`),
-        },
-        ...buttons,
-      ],
-    },
+    surface: cardOf(title, card.text.trim(), [
+      {
+        id: 'actions',
+        component: 'Row',
+        justify: 'end',
+        children: card.buttons.map((_, index) => `button-${index}`),
+      },
+      ...buttons,
+    ]),
     quickActions: card.buttons.map(({ label, action }) => ({ name: action, label })),
+  };
+}
+
+/** A card that asks nothing: `POST /v1/notifications` refuses a surface that dispatches an action. */
+export function composeNotice(notice: SimpleNotice): Surface {
+  return cardOf(requiredTitle(notice.title), notice.text.trim(), []);
+}
+
+function requiredTitle(title: string): string {
+  const trimmed = title.trim();
+  if (!trimmed) throw new Error('A title is required.');
+  return trimmed;
+}
+
+/** `actions`, when present, starts with the component whose id is `actions`. */
+function cardOf(title: string, text: string, actions: Surface['components']): Surface {
+  const children = ['title', ...(text ? ['text'] : []), ...(actions.length > 0 ? ['actions'] : [])];
+  return {
+    root: 'root',
+    dataModel: {},
+    components: [
+      { id: 'root', component: 'Card', child: 'body' },
+      { id: 'body', component: 'Column', children },
+      { id: 'title', component: 'Text', text: title, variant: 'h4' },
+      ...(text ? [{ id: 'text', component: 'Text', text }] : []),
+      ...actions,
+    ],
   };
 }
 

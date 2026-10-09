@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { composeSimple, parseSurface } from '../nodes/Nibify/surface.ts';
+import { composeNotice, composeSimple, parseSurface } from '../nodes/Nibify/surface.ts';
 
 const BUTTONS = [
   { label: 'Reject', action: 'reject', style: 'default' as const },
@@ -64,6 +64,32 @@ describe('composeSimple', () => {
         }),
       /share the action name "reject"/,
     );
+  });
+});
+
+describe('composeNotice', () => {
+  test('a title and a text become a Card that dispatches no action', () => {
+    const surface = composeNotice({ title: ' Deployed ', text: 'Version **2.4** is live.' });
+    const components = surface.components as Component[];
+
+    assert.deepEqual(
+      components.map((c) => [c.id, c.component]),
+      [
+        ['root', 'Card'],
+        ['body', 'Column'],
+        ['title', 'Text'],
+        ['text', 'Text'],
+      ],
+    );
+    assert.deepEqual(components[1]?.['children'], ['title', 'text']);
+    assert.equal(components[2]?.['text'], 'Deployed');
+    assert.ok(!JSON.stringify(surface).includes('"action"'), 'no action anywhere');
+  });
+
+  test('an empty text leaves the title alone, and a title is required', () => {
+    const surface = composeNotice({ title: 'Deployed', text: '' });
+    assert.deepEqual((surface.components as Component[])[1]?.['children'], ['title']);
+    assert.throws(() => composeNotice({ title: '  ', text: 'x' }), /title/);
   });
 });
 
