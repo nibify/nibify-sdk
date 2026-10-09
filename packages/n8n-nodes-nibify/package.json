@@ -1,10 +1,10 @@
 {
   "name": "n8n-nodes-nibify",
   "version": "0.0.2",
-  "description": "Placeholder. The Nibify community node for n8n — send an interactive request to a human and wait for the answer. Not yet functional.",
+  "description": "The Nibify community node for n8n: send an interactive request to a person's phone and wait for the answer.",
   "license": "MIT",
   "author": "Nibify",
-  "homepage": "https://github.com/nibify/nibify-sdk",
+  "homepage": "https://github.com/nibify/nibify-sdk/tree/main/packages/n8n-nodes-nibify",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nibify/nibify-sdk.git",
@@ -23,13 +23,34 @@
     "README.md"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-icons.mts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"test/**/*.test.mts\"",
+    "generate": "node scripts/agent-types.mts"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": false,
+    "credentials": [
+      "dist/credentials/NibifyApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Nibify/Nibify.node.js"
+    ]
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "devDependencies": {
+    "@n8n/eslint-plugin-community-nodes": "0.35.0",
+    "@types/node": "^20.19.43",
+    "n8n-workflow": "2.42.2",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.9.6",
     "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
   }
 }
