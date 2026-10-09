@@ -29,4 +29,15 @@ export {
   type Unanswered,
   type Withdrawn,
 } from './request.ts';
+export {
+  DEFAULT_TOLERANCE_SECONDS,
+  webhooks,
+  type MessageAnswered,
+  type MessageReceipt,
+  type MessageUnanswered,
+  type VerifyOptions,
+  type WebhookEvent,
+  type WebhookEventType,
+  type WebhookResponse,
+} from './webhooks.ts';
 export type { components, operations, paths } from './generated/agent-api.ts';

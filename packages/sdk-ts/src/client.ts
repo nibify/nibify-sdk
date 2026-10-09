@@ -4,6 +4,7 @@ import { Requests, Threads } from './lists.ts';
 import type { RequestBody, SuccessBody } from './operations.ts';
 import { RequestHandle, type AskResult, type RequestState } from './request.ts';
 import { Transport } from './transport.ts';
+import { webhooks } from './webhooks.ts';
 
 export const DEFAULT_BASE_URL = 'https://api.nibify.app';
 
@@ -43,6 +44,7 @@ export class Nibify {
   readonly baseUrl: string;
   readonly requests: Requests;
   readonly threads: Threads;
+  readonly webhooks = webhooks;
   readonly #transport: Transport;
 
   constructor(options: NibifyOptions = {}) {
