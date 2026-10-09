@@ -3,6 +3,7 @@ import { NibifyError } from './errors.ts';
 import type { RequestBody, SuccessBody } from './operations.ts';
 import { RequestHandle, type AskResult, type Waiter } from './request.ts';
 import { Transport } from './transport.ts';
+import { webhooks } from './webhooks.ts';
 
 export const DEFAULT_BASE_URL = 'https://api.nibify.app';
 
@@ -40,6 +41,7 @@ export type NotificationCreated = SuccessBody<'NotificationsController_create'>;
 export class Nibify {
   readonly environment: Environment;
   readonly baseUrl: string;
+  readonly webhooks = webhooks;
   readonly #transport: Transport;
   readonly #waiter: Waiter;
 

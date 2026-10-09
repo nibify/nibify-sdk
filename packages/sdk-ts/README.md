@@ -26,6 +26,29 @@ if (result.status === 'answered') {
 - `notify()` manda una notifica che non chiede risposta, e non ritenta.
 - `client.environment` è `test` o `live`, dedotto dal prefisso della chiave.
 
+## Callback e webhook
+
+Se passi `callbackUrl` a `ask()`, o hai un `WebhookEndpoint`, Nibify ti chiama con un corpo firmato. `webhooks.verify()` controlla la firma e restituisce l'evento:
+
+```ts
+import { webhooks } from '@nibify/sdk';
+
+// `request` è una Request di fetch (Workers, Deno, Next, Hono): il corpo si legge come testo.
+const event = await webhooks.verify({
+  body: await request.text(),
+  signature: request.headers.get('nibify-signature'),
+  secret: process.env.NIBIFY_WEBHOOK_SECRET!, // whsec_…, il signing secret del Project
+});
+
+if (event.type === 'message.answered') event.data.response.actionName;
+```
+
+- `body` è la stringa ricevuta, non un oggetto: un JSON riparsato e riserializzato non è più ciò che è stato firmato, e la firma non combacia mai.
+- La consegna è at-least-once: deduplica su `event.id`, uguale a ogni ritentativo, oppure su `event.data.response.responseId`.
+- Se la firma non regge, `verify()` solleva `NibifyError` con un `code` che dice perché: `webhook_signature_mismatch` (corpo diverso o secret sbagliato), `webhook_timestamp_out_of_tolerance` (firma vera, `t` oltre `tolerance`, 300 secondi di default), `webhook_signature_missing`, `webhook_signature_malformed`, `webhook_secret_missing`, `webhook_body_not_raw`, `webhook_payload_invalid`.
+- È anche `nibify.webhooks.verify()`, ma non serve una API key: un server che riceve e basta usa l'import.
+- Usa solo Web Crypto, quindi è asincrona e gira anche su Bun, Deno e Workers.
+
 ESM, Node ≥ 20.3, nessuna dipendenza a runtime.
 
 Codice e catalogo: <https://github.com/nibify/nibify-sdk> · Licenza MIT.
