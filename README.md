@@ -11,14 +11,14 @@ The other half — backend, Flutter app, dashboard, marketing site — is closed
 pnpm workspaces, Node LTS (24). No Turborepo: there is no build graph to schedule — the packages are independent by construction, and `pnpm -r` is the whole story.
 
 ```
-catalog/                     `@nibify/catalog` — not here yet, see below
+catalog/                     `@nibify/catalog` — a mirror, see below
 packages/sdk-ts/             `@nibify/sdk`
 packages/n8n-nodes-nibify/   `n8n-nodes-nibify` — unscoped, as n8n requires
 ```
 
 The n8n node does **not** depend on `@nibify/sdk`. n8n's verification guidelines forbid external dependencies, so the two are independent clients of the same REST API, kept in step by an OpenAPI document generated from the backend's Zod schemas and a contract test. The layout says so out loud: two sibling packages, neither above the other, and `n8n-nodes-nibify` keeps an empty `dependencies` field. There is no lint rule underneath — the empty field *is* the mechanism, and the first convenient import is the moment verification is lost.
 
-**The catalog is written in the private repo and moves here later.** It sits there at `catalog/`, already named `@nibify/catalog`, so the move is a straight copy rather than a migration. The line for it is already in `pnpm-workspace.yaml`.
+**The catalog arrives here by mirror.** Its source is `catalog/` in the private repo, and stays there until `@nibify/catalog` is published; until then every change to it on the private `main` opens a pull request here, from the `catalog/sync` branch, with `catalog/` copied byte for byte — the same way `openapi/openapi.json` arrives. Do not edit it here: the next copy overwrites it. Its tests run with the rest under `pnpm -r test`.
 
 ```sh
 pnpm install
