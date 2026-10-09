@@ -1,7 +1,7 @@
 {
   "name": "@nibify/sdk",
   "version": "0.0.2",
-  "description": "Placeholder. TypeScript SDK for Nibify — ask a human a question from your agent and wait for the answer. Not yet functional.",
+  "description": "TypeScript SDK for Nibify — ask a human a question from your agent and wait for the answer.",
   "license": "MIT",
   "author": "Nibify",
   "homepage": "https://github.com/nibify/nibify-sdk",
@@ -18,17 +18,33 @@
     "human-in-the-loop",
     "agents"
   ],
+  "type": "module",
+  "engines": {
+    "node": ">=20.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
     "README.md"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "generate": "node scripts/agent-types.ts"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "devDependencies": {
+    "@types/node": "^20.19.43",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.9.6",
     "typescript": "^6.0.3"
   }
 }
