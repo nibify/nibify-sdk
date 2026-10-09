@@ -6433,6 +6433,684 @@
           "database"
         ],
         "additionalProperties": false
+      },
+      "MessageDeliveredEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message.delivered"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "live"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "answered",
+                  "expired",
+                  "dismissed",
+                  "cancelled",
+                  null
+                ],
+                "nullable": true
+              },
+              "deliveredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "readAt": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            },
+            "required": [
+              "messageId",
+              "environment",
+              "status",
+              "deliveredAt",
+              "readAt"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "createdAt",
+          "data"
+        ]
+      },
+      "MessageReadEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message.read"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "live"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "answered",
+                  "expired",
+                  "dismissed",
+                  "cancelled",
+                  null
+                ],
+                "nullable": true
+              },
+              "deliveredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "readAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "messageId",
+              "environment",
+              "status",
+              "deliveredAt",
+              "readAt"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "createdAt",
+          "data"
+        ]
+      },
+      "WebhookResponse": {
+        "type": "object",
+        "properties": {
+          "responseId": {
+            "type": "string"
+          },
+          "actionName": {
+            "type": "string"
+          },
+          "sourceComponentId": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "clientTimestamp": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "answeredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "responseId",
+          "actionName",
+          "sourceComponentId",
+          "context",
+          "clientTimestamp",
+          "answeredAt"
+        ]
+      },
+      "MessageAnsweredEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message.answered"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "answered"
+                ]
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "live"
+                ]
+              },
+              "response": {
+                "$ref": "#/components/schemas/WebhookResponse"
+              }
+            },
+            "required": [
+              "requestId",
+              "status",
+              "environment",
+              "response"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "createdAt",
+          "data"
+        ]
+      },
+      "MessageExpiredEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message.expired"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "expired"
+                ]
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "live"
+                ]
+              },
+              "response": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            },
+            "required": [
+              "requestId",
+              "status",
+              "environment",
+              "response"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "createdAt",
+          "data"
+        ]
+      },
+      "MessageDismissedEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message.dismissed"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "dismissed"
+                ]
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "live"
+                ]
+              },
+              "response": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            },
+            "required": [
+              "requestId",
+              "status",
+              "environment",
+              "response"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "createdAt",
+          "data"
+        ]
+      },
+      "MessageCancelledEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message.cancelled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "cancelled"
+                ]
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "test",
+                  "live"
+                ]
+              },
+              "response": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            },
+            "required": [
+              "requestId",
+              "status",
+              "environment",
+              "response"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "createdAt",
+          "data"
+        ]
+      }
+    }
+  },
+  "x-webhooks": {
+    "message.delivered": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "operationId": "messageDelivered",
+        "summary": "A Device of the recipient confirmed the push arrived.",
+        "parameters": [
+          {
+            "name": "nibify-signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nibify-event-id",
+            "in": "header",
+            "required": true,
+            "description": "The event’s `id`, the same on every retry of it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageDeliveredEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Received. Any other answer is retried."
+          }
+        }
+      }
+    },
+    "message.read": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "operationId": "messageRead",
+        "summary": "The recipient opened the Message.",
+        "parameters": [
+          {
+            "name": "nibify-signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nibify-event-id",
+            "in": "header",
+            "required": true,
+            "description": "The event’s `id`, the same on every retry of it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageReadEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Received. Any other answer is retried."
+          }
+        }
+      }
+    },
+    "message.answered": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "operationId": "messageAnswered",
+        "summary": "The person answered a Request.",
+        "parameters": [
+          {
+            "name": "nibify-signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nibify-event-id",
+            "in": "header",
+            "required": true,
+            "description": "The event’s `id`, the same on every retry of it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageAnsweredEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Received. Any other answer is retried."
+          }
+        }
+      }
+    },
+    "message.expired": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "operationId": "messageExpired",
+        "summary": "A Request reached its expiry unanswered.",
+        "parameters": [
+          {
+            "name": "nibify-signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nibify-event-id",
+            "in": "header",
+            "required": true,
+            "description": "The event’s `id`, the same on every retry of it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageExpiredEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Received. Any other answer is retried."
+          }
+        }
+      }
+    },
+    "message.dismissed": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "operationId": "messageDismissed",
+        "summary": "The person declined a Request.",
+        "parameters": [
+          {
+            "name": "nibify-signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nibify-event-id",
+            "in": "header",
+            "required": true,
+            "description": "The event’s `id`, the same on every retry of it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageDismissedEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Received. Any other answer is retried."
+          }
+        }
+      }
+    },
+    "message.cancelled": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "operationId": "messageCancelled",
+        "summary": "The agent cancelled a Request.",
+        "parameters": [
+          {
+            "name": "nibify-signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nibify-event-id",
+            "in": "header",
+            "required": true,
+            "description": "The event’s `id`, the same on every retry of it.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCancelledEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Received. Any other answer is retried."
+          }
+        }
       }
     }
   }
