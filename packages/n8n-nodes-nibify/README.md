@@ -36,14 +36,26 @@ The output is the created message: `messageId`, `threadId`, `sequence`, `environ
 
 ## Cancel and Nudge
 
-Both take the **Request ID** of a pending request, the `requestId` Ask & Wait creates.
+Both act on pending requests, chosen **By**:
 
-- **Cancel** withdraws it. A workflow waiting on it in Ask & Wait resumes from *Not Answered* with `status: "cancelled"`.
+- **Request ID** — one request, the `requestId` Ask & Wait creates. The output is the request as it stands after the call. A request that is already answered, expired, dismissed or cancelled is an error that says which, such as *This Request has already been answered.*
+- **Thread Key** — every pending request of a thread, the *Thread Key* given to Ask & Wait. The output is `threadKey`, `requestIds` (the requests acted on) and `skipped`. None pending is not an error: `requestIds` is empty. A request answered or closed between the node's lookup and its call is not an error either: it is listed in `skipped` with the API's `code` and `message`. A thread with more pending requests than the project may call in a second is paced: a call refused with `429` is made again after its `Retry-After`.
+
+What each does:
+
+- **Cancel** withdraws the request. A workflow waiting on it in Ask & Wait resumes from *Not Answered* with `status: "cancelled"`.
 - **Nudge** sends its push notification again, with the same words, the same priority and the same quiet hours. The request itself does not change.
 
-The output is the request as it stands. A request that is already answered, expired, dismissed or cancelled is an error that says which, such as *This Request has already been answered.* Each input item is one call.
+Each input item is one call, or one thread.
 
-An execution waiting in Ask & Wait runs nothing else until it resumes, and Ask & Wait outputs the request ID only when the request is over. Cancel and Nudge therefore run in another workflow, with a request ID read from the Nibify API (`GET /v1/requests`).
+### Cancelling from another workflow
+
+An execution waiting in Ask & Wait runs nothing else until it resumes, and Ask & Wait outputs the request ID only when the request is over. Cancel and Nudge therefore run in another workflow, and the thread key is what both workflows know:
+
+1. In the workflow that asks, set Ask & Wait's *Options → Thread Key* to your own key for the matter, such as the order ID: `order-{{ $json.orderId }}`.
+2. In another workflow — triggered when the order is paid, cancelled or handled elsewhere — add a Nibify node with **Cancel**, **By: Thread Key** and the same key.
+
+The waiting execution resumes from *Not Answered* with `status: "cancelled"`. If the person answered first, the Cancel finds nothing pending and outputs `requestIds: []`.
 
 ## Credentials
 

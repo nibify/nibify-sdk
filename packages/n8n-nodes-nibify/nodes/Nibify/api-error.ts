@@ -22,6 +22,18 @@ export function apiFailureOf(error: unknown): ApiFailure | undefined {
   return undefined;
 }
 
+/** Seconds from the `Retry-After` of a `429`, where the helper's error keeps the response. */
+export function retryAfterOf(error: unknown): number | undefined {
+  for (const headers of [
+    at(error, 'cause', 'response', 'headers'),
+    at(error, 'response', 'headers'),
+  ]) {
+    const seconds = Number(at(headers, 'retry-after'));
+    if (Number.isFinite(seconds) && seconds > 0) return seconds;
+  }
+  return undefined;
+}
+
 function at(value: unknown, ...keys: string[]): unknown {
   let current = value;
   for (const key of keys) {
