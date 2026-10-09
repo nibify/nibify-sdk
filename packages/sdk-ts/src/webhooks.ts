@@ -1,64 +1,27 @@
 /** `webhooks.verify()`: the `Nibify-Signature` of a callback, checked with Web Crypto. ADR-0014 §2. */
-import type { Environment } from './client.ts';
+import type { components, events } from './generated/agent-api.ts';
 import { NibifyError } from './errors.ts';
 
 /** The backend's own window (`SIGNATURE_TOLERANCE_SECONDS`); each delivery attempt is signed afresh. */
 export const DEFAULT_TOLERANCE_SECONDS = 300;
 
-/** Hand-written: the spec carries no webhook payloads yet. */
-export interface WebhookResponse {
-  responseId: string;
-  actionName: string;
-  sourceComponentId: string;
-  context: Record<string, unknown> | null;
-  clientTimestamp: string;
-  answeredAt: string;
-}
+export type WebhookResponse = components['schemas']['WebhookResponse'];
 
-interface Event<Type extends string, Data> {
-  /** Minted once per event and repeated on every retry: delivery is at-least-once. */
-  id: string;
-  type: Type;
-  createdAt: string;
-  data: Data;
-}
+/** Event type → payload, from the spec's `x-webhooks`. */
+export type WebhookEvents = events;
 
-export type MessageAnswered = Event<
-  'message.answered',
-  {
-    requestId: string;
-    status: 'answered';
-    environment: Environment;
-    response: WebhookResponse;
-  }
->;
+export type WebhookEventType = keyof WebhookEvents;
 
-export type MessageUnanswered = Event<
-  'message.expired' | 'message.dismissed' | 'message.cancelled',
-  {
-    requestId: string;
-    status: 'expired' | 'dismissed' | 'cancelled';
-    environment: Environment;
-    response: null;
-  }
->;
+/** Its `id` is minted once and repeated on every retry: delivery is at-least-once. */
+export type WebhookEvent = WebhookEvents[WebhookEventType];
+
+export type MessageAnswered = WebhookEvents['message.answered'];
+
+export type MessageUnanswered = WebhookEvents[
+  'message.expired' | 'message.dismissed' | 'message.cancelled'];
 
 /** Sent only to a `WebhookEndpoint`, never to a Request's `callbackUrl`. */
-export type MessageReceipt = Event<
-  'message.delivered' | 'message.read',
-  {
-    messageId: string;
-    environment: Environment;
-    /** `null` when the Message is a notification rather than a Request. */
-    status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled' | null;
-    deliveredAt: string | null;
-    readAt: string | null;
-  }
->;
-
-export type WebhookEvent = MessageAnswered | MessageUnanswered | MessageReceipt;
-
-export type WebhookEventType = WebhookEvent['type'];
+export type MessageReceipt = WebhookEvents['message.delivered' | 'message.read'];
 
 export interface VerifyOptions {
   /** The request body exactly as received, before any `JSON.parse`. */

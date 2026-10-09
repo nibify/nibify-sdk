@@ -4,33 +4,23 @@
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+import type { events } from './generated/agent-api.ts';
+
 export const SIGNATURE_HEADER = 'nibify-signature';
 
 export const SIGNATURE_TOLERANCE_SECONDS = 300;
 
-export type TerminalStatus = 'answered' | 'expired' | 'dismissed' | 'cancelled';
+/** What a Request's `callbackUrl` receives: the receipts go only to a `WebhookEndpoint`. */
+export const CALLBACK_EVENTS = [
+  'message.answered',
+  'message.expired',
+  'message.dismissed',
+  'message.cancelled',
+] as const satisfies readonly (keyof events)[];
 
-export interface CallbackResponse {
-  responseId: string;
-  actionName: string;
-  sourceComponentId: string;
-  context: Record<string, unknown> | null;
-  clientTimestamp: string;
-  answeredAt: string;
-}
+export type CallbackEvent = events[(typeof CALLBACK_EVENTS)[number]];
 
-/** Not in `openapi/openapi.json`, which describes no webhooks: written from ADR-0014. */
-export interface CallbackEvent {
-  id: string;
-  type: `message.${TerminalStatus}`;
-  createdAt: string;
-  data: {
-    requestId: string;
-    status: TerminalStatus;
-    environment: 'test' | 'live';
-    response: CallbackResponse | null;
-  };
-}
+export type TerminalStatus = CallbackEvent['data']['status'];
 
 export type Callback = { ok: true; event: CallbackEvent } | { ok: false; reason: string };
 

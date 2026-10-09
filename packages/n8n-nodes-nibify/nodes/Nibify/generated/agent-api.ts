@@ -150,9 +150,223 @@ export interface paths {
     trace?: never;
   };
 }
-export type webhooks = Record<string, never>;
+export interface webhooks {
+  'message.delivered': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** A Device of the recipient confirmed the push arrived. */
+    post: operations['messageDelivered'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  'message.read': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** The recipient opened the Message. */
+    post: operations['messageRead'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  'message.answered': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** The person answered a Request. */
+    post: operations['messageAnswered'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  'message.expired': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** A Request reached its expiry unanswered. */
+    post: operations['messageExpired'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  'message.dismissed': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** The person declined a Request. */
+    post: operations['messageDismissed'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  'message.cancelled': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** The agent cancelled a Request. */
+    post: operations['messageCancelled'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+}
 export interface components {
   schemas: {
+    MessageCancelledEvent: {
+      id: string;
+      /** @enum {string} */
+      type: 'message.cancelled';
+      /** Format: date-time */
+      createdAt: string;
+      data: {
+        requestId: string;
+        /** @enum {string} */
+        status: 'cancelled';
+        /** @enum {string} */
+        environment: 'test' | 'live';
+        /** @enum {string|null} */
+        response: null;
+      };
+    };
+    MessageDismissedEvent: {
+      id: string;
+      /** @enum {string} */
+      type: 'message.dismissed';
+      /** Format: date-time */
+      createdAt: string;
+      data: {
+        requestId: string;
+        /** @enum {string} */
+        status: 'dismissed';
+        /** @enum {string} */
+        environment: 'test' | 'live';
+        /** @enum {string|null} */
+        response: null;
+      };
+    };
+    MessageExpiredEvent: {
+      id: string;
+      /** @enum {string} */
+      type: 'message.expired';
+      /** Format: date-time */
+      createdAt: string;
+      data: {
+        requestId: string;
+        /** @enum {string} */
+        status: 'expired';
+        /** @enum {string} */
+        environment: 'test' | 'live';
+        /** @enum {string|null} */
+        response: null;
+      };
+    };
+    MessageAnsweredEvent: {
+      id: string;
+      /** @enum {string} */
+      type: 'message.answered';
+      /** Format: date-time */
+      createdAt: string;
+      data: {
+        requestId: string;
+        /** @enum {string} */
+        status: 'answered';
+        /** @enum {string} */
+        environment: 'test' | 'live';
+        response: components['schemas']['WebhookResponse'];
+      };
+    };
+    WebhookResponse: {
+      responseId: string;
+      actionName: string;
+      sourceComponentId: string;
+      context: {
+        [key: string]: unknown;
+      } | null;
+      /** Format: date-time */
+      clientTimestamp: string;
+      /** Format: date-time */
+      answeredAt: string;
+    };
+    MessageReadEvent: {
+      id: string;
+      /** @enum {string} */
+      type: 'message.read';
+      /** Format: date-time */
+      createdAt: string;
+      data: {
+        messageId: string;
+        /** @enum {string} */
+        environment: 'test' | 'live';
+        /** @enum {string|null} */
+        status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled' | null;
+        /** Format: date-time */
+        deliveredAt: string;
+        /** Format: date-time */
+        readAt: string;
+      };
+    };
+    MessageDeliveredEvent: {
+      id: string;
+      /** @enum {string} */
+      type: 'message.delivered';
+      /** Format: date-time */
+      createdAt: string;
+      data: {
+        messageId: string;
+        /** @enum {string} */
+        environment: 'test' | 'live';
+        /** @enum {string|null} */
+        status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled' | null;
+        /** Format: date-time */
+        deliveredAt: string;
+        /** @enum {string|null} */
+        readAt: null;
+      };
+    };
     ApiErrorDto: {
       error: {
         code: string;
@@ -907,4 +1121,174 @@ export interface operations {
       };
     };
   };
+  messageDelivered: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description `t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret. */
+        'nibify-signature': string;
+        /** @description The event’s `id`, the same on every retry of it. */
+        'nibify-event-id': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MessageDeliveredEvent'];
+      };
+    };
+    responses: {
+      /** @description Received. Any other answer is retried. */
+      '2XX': {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  messageRead: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description `t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret. */
+        'nibify-signature': string;
+        /** @description The event’s `id`, the same on every retry of it. */
+        'nibify-event-id': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MessageReadEvent'];
+      };
+    };
+    responses: {
+      /** @description Received. Any other answer is retried. */
+      '2XX': {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  messageAnswered: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description `t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret. */
+        'nibify-signature': string;
+        /** @description The event’s `id`, the same on every retry of it. */
+        'nibify-event-id': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MessageAnsweredEvent'];
+      };
+    };
+    responses: {
+      /** @description Received. Any other answer is retried. */
+      '2XX': {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  messageExpired: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description `t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret. */
+        'nibify-signature': string;
+        /** @description The event’s `id`, the same on every retry of it. */
+        'nibify-event-id': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MessageExpiredEvent'];
+      };
+    };
+    responses: {
+      /** @description Received. Any other answer is retried. */
+      '2XX': {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  messageDismissed: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description `t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret. */
+        'nibify-signature': string;
+        /** @description The event’s `id`, the same on every retry of it. */
+        'nibify-event-id': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MessageDismissedEvent'];
+      };
+    };
+    responses: {
+      /** @description Received. Any other answer is retried. */
+      '2XX': {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  messageCancelled: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description `t=<unix seconds>,v1=<hex>`: HMAC-SHA256 of `<t>.<raw body>`, keyed with the Project’s signing secret. */
+        'nibify-signature': string;
+        /** @description The event’s `id`, the same on every retry of it. */
+        'nibify-event-id': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MessageCancelledEvent'];
+      };
+    };
+    responses: {
+      /** @description Received. Any other answer is retried. */
+      '2XX': {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+}
+export interface events {
+  'message.delivered': components['schemas']['MessageDeliveredEvent'];
+  'message.read': components['schemas']['MessageReadEvent'];
+  'message.answered': components['schemas']['MessageAnsweredEvent'];
+  'message.expired': components['schemas']['MessageExpiredEvent'];
+  'message.dismissed': components['schemas']['MessageDismissedEvent'];
+  'message.cancelled': components['schemas']['MessageCancelledEvent'];
 }
