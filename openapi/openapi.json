@@ -3759,9 +3759,6 @@
               },
               "context": {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {},
                 "nullable": true
               },
@@ -3886,9 +3883,6 @@
               },
               "context": {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {},
                 "nullable": true
               },
@@ -3942,9 +3936,6 @@
           },
           "context": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {},
             "nullable": true
           },
@@ -6588,9 +6579,6 @@
           },
           "context": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {},
             "nullable": true
           },
