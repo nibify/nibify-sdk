@@ -1,7 +1,8 @@
-/** The `Nibify` client: configuration, `ask()` and `notify()`. PRD §4.7. */
+/** The `Nibify` client: configuration and the verbs of PRD §4.7. */
 import { NibifyError } from './errors.ts';
+import { Requests, Threads } from './lists.ts';
 import type { RequestBody, SuccessBody } from './operations.ts';
-import { RequestHandle, type AskResult, type Waiter } from './request.ts';
+import { RequestHandle, type AskResult, type RequestState } from './request.ts';
 import { Transport } from './transport.ts';
 
 export const DEFAULT_BASE_URL = 'https://api.nibify.app';
@@ -40,8 +41,9 @@ export type NotificationCreated = SuccessBody<'NotificationsController_create'>;
 export class Nibify {
   readonly environment: Environment;
   readonly baseUrl: string;
+  readonly requests: Requests;
+  readonly threads: Threads;
   readonly #transport: Transport;
-  readonly #waiter: Waiter;
 
   constructor(options: NibifyOptions = {}) {
     const env = globalThis.process?.env ?? {};
@@ -61,14 +63,8 @@ export class Nibify {
       fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
       maxRetries: options.maxRetries ?? DEFAULT_MAX_RETRIES,
     });
-    this.#waiter = (requestId, wait) =>
-      this.#transport.send({
-        operation: 'RequestsController_awaitResponse',
-        pathParams: { id: requestId },
-        query: { wait: wait.seconds },
-        retry: true,
-        signal: wait.signal,
-      });
+    this.requests = new Requests(this.#transport);
+    this.threads = new Threads(this.#transport);
   }
 
   /** Resolves with the outcome, never rejects on one: `expired` and `timeout` are values. */
@@ -81,10 +77,20 @@ export class Nibify {
       retry: true,
       signal,
     });
-    return new RequestHandle(created.requestId, this.#waiter).wait({
+    return new RequestHandle(created.requestId, this.#transport).wait({
       ...(timeout !== undefined ? { timeout } : {}),
       ...(signal ? { signal } : {}),
     });
+  }
+
+  /** The Request as it stands now, without waiting, with the handle that `ask()` returns too. */
+  async getRequest(id: string): Promise<RequestState> {
+    const state = await this.#transport.send({
+      operation: 'RequestsController_read',
+      pathParams: { id },
+      retry: true,
+    });
+    return { ...state, request: new RequestHandle(id, this.#transport) };
   }
 
   /** Not retried: `POST /v1/notifications` takes no `Idempotency-Key`, so a retry could deliver twice. */
