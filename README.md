@@ -4,7 +4,9 @@ The open half of [Nibify](https://github.com/nibify): the component catalog, the
 
 The other half — backend, Flutter app, dashboard, marketing site — is closed and not self-hostable. That is a product decision, not an oversight: the backend is the only thing that can ever be charged for, and self-hosting it would cost Docker, configuration, documented migrations and support before there is a single user.
 
-> **Early.** On npm both packages are still placeholders. In this repo the SDK has `ask()` and `notify()`; the n8n node does nothing yet. The API they talk to does not exist in public form.
+> **Early.** On npm both packages are still the `0.0.2` placeholders. In this repo the SDK covers every operation of the public API — `ask()`, `notify()`, the request handle with `wait()`, `cancel()` and `nudge()`, the request and thread lists, the component constructors and `webhooks.verify()` — and the n8n node has Ask & Wait, Send Notification, Cancel and Nudge. The API they talk to is not deployed yet.
+
+The package READMEs are what npm shows, so they stay short and point at the documentation, <https://nibify.app/docs>. This README is for whoever works on the code.
 
 ## The workspace
 
@@ -17,6 +19,8 @@ packages/n8n-nodes-nibify/   `n8n-nodes-nibify` — unscoped, as n8n requires
 ```
 
 The n8n node does **not** depend on `@nibify/sdk`. n8n's verification guidelines forbid external dependencies, so the two are independent clients of the same REST API, kept in step by an OpenAPI document generated from the backend's Zod schemas and a contract test. The layout says so out loud: two sibling packages, neither above the other, and `n8n-nodes-nibify` keeps an empty `dependencies` field. There is no lint rule underneath — the empty field *is* the mechanism, and the first convenient import is the moment verification is lost.
+
+**Types are generated, the clients are written by hand.** Each package generates its types from `openapi/openapi.json`, keeping only the operations of the API's `agent` tag: `pnpm --filter @nibify/sdk generate`, which also regenerates the SDK's component constructors from `catalog/catalog.json`, and `pnpm --filter n8n-nodes-nibify generate`. Never edit the generated files. Each package's contract test fails when its types fall behind the spec, or when an `agent` operation is neither called nor listed as not yet covered; the SDK's also fails when the constructors fall behind the catalog.
 
 **The catalog arrives here by mirror.** Its source is `catalog/` in the private repo, and stays there until `@nibify/catalog` is published; until then every change to it on the private `main` opens a pull request here, from the `catalog/sync` branch, with `catalog/` copied byte for byte — the same way `openapi/openapi.json` arrives. Do not edit it here: the next copy overwrites it. Its tests run with the rest under `pnpm -r test`.
 
