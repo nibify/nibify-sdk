@@ -118,7 +118,7 @@ export interface paths {
     };
     /**
      * List the Threads of this Project
-     * @description Every conversation this key can see, the one that last spoke first. Metadata only: `lastMessage` is the notification block of the newest Message, never anything read out of a surface (ADR-0003). One-shot Requests are Threads of one and are listed too — their `threadKey` is null. The list is scoped to the half of the Project the key belongs to: a `sk_test_…` never sees a live conversation.
+     * @description Every conversation this key can see, the one that last spoke first. Metadata only: `lastMessage` is the notification block of the newest Message, never anything read out of a surface. One-shot Requests are Threads of one and are listed too — their `threadKey` is null. The list is scoped to the half of the Project the key belongs to: a `sk_test_…` never sees a live conversation.
      */
     get: operations['ThreadsController_list'];
     put?: never;
@@ -257,119 +257,245 @@ export interface webhooks {
 export interface components {
   schemas: {
     MessageCancelledEvent: {
+      /** @description The event’s id, the same on every retry of it: deduplicate on it. */
       id: string;
-      /** @enum {string} */
+      /**
+       * @description Which of the six events this is.
+       * @enum {string}
+       */
       type: 'message.cancelled';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the event happened.
+       */
       createdAt: string;
+      /** @description The Request, as it ended. */
       data: {
+        /** @description The Request this event is about. */
         requestId: string;
-        /** @enum {string} */
+        /**
+         * @description The terminal state the Request reached.
+         * @enum {string}
+         */
         status: 'cancelled';
-        /** @enum {string} */
+        /**
+         * @description The Environment the Message was sent into.
+         * @enum {string}
+         */
         environment: 'test' | 'live';
-        /** @enum {string|null} */
+        /**
+         * @description Only an answered Request has a Response.
+         * @enum {string|null}
+         */
         response: null;
       };
     };
     MessageDismissedEvent: {
+      /** @description The event’s id, the same on every retry of it: deduplicate on it. */
       id: string;
-      /** @enum {string} */
+      /**
+       * @description Which of the six events this is.
+       * @enum {string}
+       */
       type: 'message.dismissed';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the event happened.
+       */
       createdAt: string;
+      /** @description The Request, as it ended. */
       data: {
+        /** @description The Request this event is about. */
         requestId: string;
-        /** @enum {string} */
+        /**
+         * @description The terminal state the Request reached.
+         * @enum {string}
+         */
         status: 'dismissed';
-        /** @enum {string} */
+        /**
+         * @description The Environment the Message was sent into.
+         * @enum {string}
+         */
         environment: 'test' | 'live';
-        /** @enum {string|null} */
+        /**
+         * @description Only an answered Request has a Response.
+         * @enum {string|null}
+         */
         response: null;
       };
     };
     MessageExpiredEvent: {
+      /** @description The event’s id, the same on every retry of it: deduplicate on it. */
       id: string;
-      /** @enum {string} */
+      /**
+       * @description Which of the six events this is.
+       * @enum {string}
+       */
       type: 'message.expired';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the event happened.
+       */
       createdAt: string;
+      /** @description The Request, as it ended. */
       data: {
+        /** @description The Request this event is about. */
         requestId: string;
-        /** @enum {string} */
+        /**
+         * @description The terminal state the Request reached.
+         * @enum {string}
+         */
         status: 'expired';
-        /** @enum {string} */
+        /**
+         * @description The Environment the Message was sent into.
+         * @enum {string}
+         */
         environment: 'test' | 'live';
-        /** @enum {string|null} */
+        /**
+         * @description Only an answered Request has a Response.
+         * @enum {string|null}
+         */
         response: null;
       };
     };
     MessageAnsweredEvent: {
+      /** @description The event’s id, the same on every retry of it: deduplicate on it. */
       id: string;
-      /** @enum {string} */
+      /**
+       * @description Which of the six events this is.
+       * @enum {string}
+       */
       type: 'message.answered';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the event happened.
+       */
       createdAt: string;
+      /** @description The Request, as it ended. */
       data: {
+        /** @description The Request this event is about. */
         requestId: string;
-        /** @enum {string} */
+        /**
+         * @description The terminal state the Request reached.
+         * @enum {string}
+         */
         status: 'answered';
-        /** @enum {string} */
+        /**
+         * @description The Environment the Message was sent into.
+         * @enum {string}
+         */
         environment: 'test' | 'live';
         response: components['schemas']['WebhookResponse'];
       };
     };
+    /** @description The person’s answer. */
     WebhookResponse: {
+      /** @description The Response’s id. */
       responseId: string;
+      /** @description The action the person chose. */
       actionName: string;
+      /** @description The `id` of the component the person answered with, or `notification` for a quick action on the push. */
       sourceComponentId: string;
+      /** @description The values the action sent back, or null when it sent none. */
       context: {
         [key: string]: unknown;
       } | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the person answered, by the phone’s clock.
+       */
       clientTimestamp: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the answer reached Nibify.
+       */
       answeredAt: string;
     };
     MessageReadEvent: {
+      /** @description The event’s id, the same on every retry of it: deduplicate on it. */
       id: string;
-      /** @enum {string} */
+      /**
+       * @description Which of the six events this is.
+       * @enum {string}
+       */
       type: 'message.read';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the event happened.
+       */
       createdAt: string;
+      /** @description The Message, and its two receipts. */
       data: {
+        /** @description The Message this event is about. For a Request, the same as its `requestId`. */
         messageId: string;
-        /** @enum {string} */
+        /**
+         * @description The Environment the Message was sent into.
+         * @enum {string}
+         */
         environment: 'test' | 'live';
-        /** @enum {string|null} */
+        /**
+         * @description The Request’s status as it stands, or null for a Notification, which has none.
+         * @enum {string|null}
+         */
         status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled' | null;
-        /** Format: date-time */
+        /**
+         * Format: date-time
+         * @description When a phone of the recipient first confirmed the push arrived.
+         */
         deliveredAt: string;
-        /** Format: date-time */
+        /**
+         * Format: date-time
+         * @description When the person first opened the Message.
+         */
         readAt: string;
       };
     };
     MessageDeliveredEvent: {
+      /** @description The event’s id, the same on every retry of it: deduplicate on it. */
       id: string;
-      /** @enum {string} */
+      /**
+       * @description Which of the six events this is.
+       * @enum {string}
+       */
       type: 'message.delivered';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the event happened.
+       */
       createdAt: string;
+      /** @description The Message, and its two receipts. */
       data: {
+        /** @description The Message this event is about. For a Request, the same as its `requestId`. */
         messageId: string;
-        /** @enum {string} */
+        /**
+         * @description The Environment the Message was sent into.
+         * @enum {string}
+         */
         environment: 'test' | 'live';
-        /** @enum {string|null} */
+        /**
+         * @description The Request’s status as it stands, or null for a Notification, which has none.
+         * @enum {string|null}
+         */
         status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled' | null;
-        /** Format: date-time */
+        /**
+         * Format: date-time
+         * @description When a phone of the recipient first confirmed the push arrived.
+         */
         deliveredAt: string;
-        /** @enum {string|null} */
+        /**
+         * @description Not read yet: `message.read` says when it is.
+         * @enum {string|null}
+         */
         readAt: null;
       };
     };
     ApiErrorDto: {
+      /** @description What went wrong. */
       error: {
-        /** @enum {string} */
+        /**
+         * @description What went wrong, for a program to branch on.
+         * @enum {string}
+         */
         code:
           | 'malformed_request'
           | 'invalid_reset_token'
@@ -407,230 +533,439 @@ export interface components {
           | 'rate_limited'
           | 'request_rejected'
           | 'internal_error';
+        /** @description What went wrong, in a sentence for a person reading a log. */
         message: string;
+        /** @description One entry for each problem found in what you sent, when the error can point at it. */
         details?: {
+          /** @description Where the problem is, as a dotted path into what you sent: `notification.title`. */
           pointer: string;
+          /** @description What is wrong there. */
           message: string;
+          /** @description The `id` of the Surface component at fault, when the problem is inside a Surface. */
           component?: string;
+          /** @description The property of that component at fault, when there is one. */
           property?: string;
         }[];
       };
     };
+    /** @description A Thread, and one page of its Messages. */
     ThreadHistory_Output: {
+      /** @description The Thread’s id. */
       threadId: string;
+      /** @description The key the Thread was named with, or null for a one-shot Request’s own. */
       threadKey: string | null;
-      /** @enum {string} */
+      /**
+       * @description The Environment the Thread belongs to.
+       * @enum {string}
+       */
       environment: 'test' | 'live';
+      /** @description How many Messages the Thread holds. */
       messageCount: number;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Thread was created, by its first Message.
+       */
       createdAt: string;
       lastMessage: components['schemas']['ThreadMessage_Output'];
+      /** @description One page of the Thread’s Messages, oldest first. */
       messages: {
+        /** @description The Messages of this page, oldest first. */
         items: components['schemas']['ThreadMessage_Output'][];
+        /** @description The `after` of the next page, or null when this page reached the end of the Thread. */
         nextAfter: number | null;
       };
     };
+    /** @description A Message of a Thread: what the push said and its receipts, never its Surface. */
     ThreadMessage_Output: {
+      /** @description The Message’s id. For a Request, the same as its `requestId`. */
       messageId: string;
+      /** @description The Message’s position in its Thread, starting at 1. */
       sequence: number;
-      /** @enum {string} */
+      /**
+       * @description What the Message asks for: `informational` nothing, `action` an answer, `conversation` the next turn of the exchange.
+       * @enum {string}
+       */
       interactionType: 'informational' | 'action' | 'conversation';
-      /** @enum {string|null} */
+      /**
+       * @description The Request’s status, or null for a Notification, which has none.
+       * @enum {string|null}
+       */
       status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled' | null;
+      /** @description Who the Message was sent as. */
       sender: {
+        /** @description The name the person sees. */
         name: string;
+        /** @description The icon it was sent with, or null. */
         icon: string | null;
       };
+      /** @description What the push said. Empty once the person has deleted the content. */
       notification: {
+        /** @description The title of the push and of its Inbox row. */
         title: string;
+        /** @description The text of the push and of its Inbox row. */
         body: string;
+        /** @description The buttons on the push, empty when it had none. */
         quickActions: {
+          /** @description The action the button dispatches. */
           name: string;
+          /** @description The button’s text on the notification. */
           label: string;
         }[];
       };
+      /** @description The lowest catalog version that can draw its Surface. Null when it has none, or once the content is deleted. */
       minCatalogVersion: number | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Message was sent.
+       */
       createdAt: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request expires, or null if it never does.
+       */
       expiresAt: string | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When a phone of the recipient first confirmed the push arrived. Null means not confirmed yet, not that it was not sent.
+       */
       deliveredAt: string | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the person first opened it, or null. Never set while `deliveredAt` is not.
+       */
       readAt: string | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the person deleted what was said in this Message, or null. The Message stays in the Thread, emptied.
+       */
       contentDeletedAt: string | null;
     };
     ThreadPageDto_Output: {
+      /** @description The Threads of this page, the one that last spoke first. */
       items: components['schemas']['Thread_Output'][];
+      /** @description The `cursor` of the next page, or null on the last one. */
       nextCursor: string | null;
     };
+    /** @description A conversation, and the newest Message in it. */
     Thread_Output: {
+      /** @description The Thread’s id. */
       threadId: string;
+      /** @description The key the Thread was named with, or null for a one-shot Request’s own. */
       threadKey: string | null;
-      /** @enum {string} */
+      /**
+       * @description The Environment the Thread belongs to.
+       * @enum {string}
+       */
       environment: 'test' | 'live';
+      /** @description How many Messages the Thread holds. */
       messageCount: number;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Thread was created, by its first Message.
+       */
       createdAt: string;
       lastMessage: components['schemas']['ThreadMessage_Output'];
     };
     NotificationCreatedDto: {
+      /** @description The Notification’s id, as the `message.delivered` and `message.read` events name it. */
       messageId: string;
+      /** @description The Thread the Notification joined. */
       threadId: string;
+      /** @description The Notification’s position in its Thread, starting at 1. */
       sequence: number;
-      /** @enum {string} */
+      /**
+       * @description A Notification asks for nothing, in a Thread or out of one.
+       * @enum {string}
+       */
       interactionType: 'informational';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Notification was created.
+       */
       createdAt: string;
-      /** @enum {string} */
+      /**
+       * @description The Environment of the API key that created it.
+       * @enum {string}
+       */
       environment: 'test' | 'live';
+      /** @description The lowest catalog version that can draw the Surface, worked out by the server. Null when there is no Surface. */
       minCatalogVersion: number | null;
+      /** @description What did not stop the Message but changes how it is shown: `catalog_version_too_low` when no installed app can draw the Surface. */
       warnings: {
-        /** @enum {string} */
+        /**
+         * @description What the warning is about, for a program to branch on.
+         * @enum {string}
+         */
         code: 'catalog_version_too_low';
+        /** @description The same warning, in a sentence for a person. */
         message: string;
       }[];
     };
     CreateNotificationDto: {
+      /** @description Who the person sees the Notification as coming from. */
       sender: {
+        /** @description The name the person sees, free text. */
         name: string;
+        /** @description An icon for the sender, free text, kept and returned as sent. */
         icon?: string;
       };
+      /** @description What the push says. */
       notification: {
+        /** @description The title of the push and of its Inbox row. */
         title: string;
+        /** @description The text of the push and of its Inbox row. */
         body: string;
       };
       /**
+       * @description How loudly the Notification announces itself: `low` only in the Inbox, `normal` with a push, `high` with a push that may break through the person’s quiet hours.
        * @default normal
        * @enum {string}
        */
       priority?: 'low' | 'normal' | 'high';
+      /** @description UI shown when the person opens the Notification, checked against the catalog. It may not dispatch an action: a Surface that asks for an answer is a Request. */
       surface?: {
+        /** @description The `id` of the component the Surface is drawn from: always `root`, and one of `components` must carry it. */
         root: string;
+        /** @description The flat JSON state the components bind to by JSON Pointer, and the source of the values an action sends back. */
         dataModel: {
           [key: string]: unknown;
         };
+        /** @description The components, as a flat list, each one checked against the catalog. */
         components: {
           [key: string]: unknown;
         }[];
       };
+      /** @description Your name for a conversation: the Notification joins the Thread with this key, and asks for nothing there either. Without it, the Notification is a Thread of its own. */
       threadKey?: string;
     };
+    /** @description A Request as it stands now, with the Response once it has one. */
     RequestOutcomeDto_Output: {
+      /** @description The Request’s id. */
       requestId: string;
-      /** @enum {string} */
+      /**
+       * @description Where the Request is: `pending` until it reaches one of the four terminal states.
+       * @enum {string}
+       */
       status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request was created.
+       */
       createdAt: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request expires, or null if it never does.
+       */
       expiresAt: string | null;
-      /** @enum {string} */
+      /**
+       * @description The Environment of the API key that created it.
+       * @enum {string}
+       */
       environment: 'test' | 'live';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When a phone of the recipient first confirmed the push arrived. Null means not confirmed yet, not that it was not sent.
+       */
       deliveredAt: string | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the person first opened it, or null. Never set while `deliveredAt` is not.
+       */
       readAt: string | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the person deleted what was said in this Request, or null. From then on `response.context` is null.
+       */
       contentDeletedAt: string | null;
+      /** @description The person’s answer: present exactly when `status` is `answered`. */
       response: {
+        /** @description The Response’s id. */
         responseId: string;
+        /** @description The action the person chose. */
         actionName: string;
+        /** @description The `id` of the component the person answered with, or `notification` for a quick action on the push. */
         sourceComponentId: string;
+        /** @description The values the action sent back, or null when it sent none or the person has since deleted the content. */
         context: {
           [key: string]: unknown;
         } | null;
-        /** Format: date-time */
+        /**
+         * Format: date-time
+         * @description When the person answered, by the phone’s clock.
+         */
         clientTimestamp: string;
-        /** Format: date-time */
+        /**
+         * Format: date-time
+         * @description When the answer reached Nibify.
+         */
         answeredAt: string;
       } | null;
     };
     SettledRequestDto_Output: {
+      /** @description The Request’s id. */
       requestId: string;
-      /** @enum {string} */
+      /**
+       * @description The terminal state the Request is in.
+       * @enum {string}
+       */
       status: 'answered' | 'expired' | 'dismissed' | 'cancelled';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request was created.
+       */
       createdAt: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request expires, or null if it never does.
+       */
       expiresAt: string | null;
-      /** @enum {string} */
+      /**
+       * @description The Environment of the API key that created it.
+       * @enum {string}
+       */
       environment: 'test' | 'live';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When a phone of the recipient first confirmed the push arrived. Null means not confirmed yet, not that it was not sent.
+       */
       deliveredAt: string | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the person first opened it, or null. Never set while `deliveredAt` is not.
+       */
       readAt: string | null;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the person deleted what was said in this Request, or null. From then on `response.context` is null.
+       */
       contentDeletedAt: string | null;
+      /** @description The person’s answer: present exactly when `status` is `answered`. */
       response: {
+        /** @description The Response’s id. */
         responseId: string;
+        /** @description The action the person chose. */
         actionName: string;
+        /** @description The `id` of the component the person answered with, or `notification` for a quick action on the push. */
         sourceComponentId: string;
+        /** @description The values the action sent back, or null when it sent none or the person has since deleted the content. */
         context: {
           [key: string]: unknown;
         } | null;
-        /** Format: date-time */
+        /**
+         * Format: date-time
+         * @description When the person answered, by the phone’s clock.
+         */
         clientTimestamp: string;
-        /** Format: date-time */
+        /**
+         * Format: date-time
+         * @description When the answer reached Nibify.
+         */
         answeredAt: string;
       } | null;
     };
     RequestCreatedDto: {
+      /** @description The Request’s id: read it, wait for it, withdraw it or nudge it by this. */
       requestId: string;
+      /** @description The Thread the Request joined. */
       threadId: string;
+      /** @description The Request’s position in its Thread, starting at 1. */
       sequence: number;
-      /** @enum {string} */
+      /**
+       * @description Inferred, never sent: `conversation` when the Request joined a Thread that already had Messages, `action` otherwise.
+       * @enum {string}
+       */
       interactionType: 'action' | 'conversation';
-      /** @enum {string} */
+      /**
+       * @description The status the Request has now. On an idempotent replay, whatever the original has become since.
+       * @enum {string}
+       */
       status: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled';
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request was created.
+       */
       createdAt: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request expires, or null if it never does.
+       */
       expiresAt: string | null;
-      /** @enum {string} */
+      /**
+       * @description The Environment of the API key that created it.
+       * @enum {string}
+       */
       environment: 'test' | 'live';
+      /** @description The lowest catalog version that can draw the Surface, worked out by the server. Null when there is no Surface. */
       minCatalogVersion: number | null;
+      /** @description What did not stop the Message but changes how it is shown: `catalog_version_too_low` when no installed app can draw the Surface. */
       warnings: {
-        /** @enum {string} */
+        /**
+         * @description What the warning is about, for a program to branch on.
+         * @enum {string}
+         */
         code: 'catalog_version_too_low';
+        /** @description The same warning, in a sentence for a person. */
         message: string;
       }[];
     };
     CreateRequestDto: {
+      /** @description Who the person sees the Request as coming from. */
       sender: {
+        /** @description The name the person sees, free text. */
         name: string;
+        /** @description An icon for the sender, free text, kept and returned as sent. */
         icon?: string;
       };
+      /** @description What the push says, and the buttons it offers. */
       notification: {
+        /** @description The title of the push and of its Inbox row. */
         title: string;
+        /** @description The text of the push and of its Inbox row. */
         body: string;
+        /** @description Buttons on the push itself, answerable from the lock screen. */
         quickActions?: {
+          /** @description The action the button dispatches, and the `actionName` of the Response it produces. With a `surface`, it must be an action the Surface dispatches. */
           name: string;
+          /** @description The button’s text on the notification. */
           label: string;
         }[];
       };
       /**
+       * @description How loudly the Request announces itself: `low` only in the Inbox, `normal` with a push, `high` with a push that may break through the person’s quiet hours.
        * @default normal
        * @enum {string}
        */
       priority?: 'low' | 'normal' | 'high';
+      /** @description Your name for a conversation: Requests sent with the same key join one Thread. Without it, the Request is a Thread of its own. */
       threadKey?: string;
+      /** @description The interactive UI the person answers in, checked against the catalog. Without it, the push and its `quickActions` are the whole Request. */
       surface?: {
+        /** @description The `id` of the component the Surface is drawn from: always `root`, and one of `components` must carry it. */
         root: string;
+        /** @description The flat JSON state the components bind to by JSON Pointer, and the source of the values an action sends back. */
         dataModel: {
           [key: string]: unknown;
         };
+        /** @description The components, as a flat list, each one checked against the catalog. */
         components: {
           [key: string]: unknown;
         }[];
       };
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description When the Request expires if nobody has answered it, in the future. Without it, the Request waits indefinitely.
+       */
       expiresAt?: string;
-      /** Format: uri */
+      /**
+       * Format: uri
+       * @description A public `https` URL called once, with a signed `POST`, when the Request reaches a terminal state.
+       */
       callbackUrl?: string;
     };
     RequestPageDto_Output: {
+      /** @description The Requests of this page, newest first. */
       items: components['schemas']['RequestOutcomeDto_Output'][];
+      /** @description The `cursor` of the next page, or null on the last one. */
       nextCursor: string | null;
     };
   };
@@ -645,11 +980,17 @@ export interface operations {
   RequestsController_list: {
     parameters: {
       query?: {
+        /** @description Only the Requests in this status. */
         status?: 'pending' | 'answered' | 'expired' | 'dismissed' | 'cancelled';
+        /** @description Only the Requests of the Thread with this key. */
         threadKey?: string;
+        /** @description Only the Requests created after this instant, not at it. */
         createdAfter?: string;
+        /** @description Only the Requests created before this instant, not at it. */
         createdBefore?: string;
+        /** @description How many Requests a page holds. */
         limit?: number;
+        /** @description The `nextCursor` of the previous page. Omit it for the first page. */
         cursor?: string;
       };
       header?: never;
@@ -940,6 +1281,7 @@ export interface operations {
   RequestsController_awaitResponse: {
     parameters: {
       query?: {
+        /** @description How many seconds to hold the connection open for a terminal state. `0` answers at once. */
         wait?: number;
       };
       header?: never;
@@ -1045,7 +1387,9 @@ export interface operations {
   ThreadsController_list: {
     parameters: {
       query?: {
+        /** @description How many Threads a page holds. */
         limit?: number;
+        /** @description The `nextCursor` of the previous page. Omit it for the first page. */
         cursor?: string;
       };
       header?: never;
@@ -1097,7 +1441,9 @@ export interface operations {
   ThreadsController_read: {
     parameters: {
       query?: {
+        /** @description The `sequence` of the last Message you hold: the page starts after it. `0` reads from the beginning. */
         after?: number;
+        /** @description How many Messages a page holds. */
         limit?: number;
       };
       header?: never;
