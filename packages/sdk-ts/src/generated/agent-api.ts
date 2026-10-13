@@ -369,7 +369,44 @@ export interface components {
     };
     ApiErrorDto: {
       error: {
-        code: string;
+        /** @enum {string} */
+        code:
+          | 'malformed_request'
+          | 'invalid_reset_token'
+          | 'unauthorized'
+          | 'api_key_revoked'
+          | 'session_revoked'
+          | 'session_not_a_device'
+          | 'invalid_credentials'
+          | 'origin_not_allowed'
+          | 'submission_rejected'
+          | 'not_found'
+          | 'request_not_found'
+          | 'message_not_found'
+          | 'thread_not_found'
+          | 'project_not_found'
+          | 'api_key_not_found'
+          | 'device_not_found'
+          | 'webhook_endpoint_not_found'
+          | 'method_not_allowed'
+          | 'email_taken'
+          | 'project_limit_reached'
+          | 'last_project'
+          | 'webhook_endpoint_duplicate'
+          | 'request_already_answered'
+          | 'request_already_expired'
+          | 'request_already_dismissed'
+          | 'request_already_cancelled'
+          | 'payload_too_large'
+          | 'unsupported_media_type'
+          | 'invalid_request_body'
+          | 'idempotency_conflict'
+          | 'callback_url_invalid'
+          | 'surface_invalid'
+          | 'webhook_url_invalid'
+          | 'rate_limited'
+          | 'request_rejected'
+          | 'internal_error';
         message: string;
         details?: {
           pointer: string;
