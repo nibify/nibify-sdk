@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, test } from 'node:test';
 
-import { Nibify, NibifyError, type Surface } from '../src/index.ts';
+import { Button, Nibify, NibifyError, Text, type Surface } from '../src/index.ts';
 import { fakeFetch, json, type Reply } from './fake-fetch.ts';
 
 const KEY = 'sk_test_0123abcd0123456789abcdef0123456789ab';
@@ -227,6 +227,108 @@ describe('ask()', () => {
     });
     assert.equal(seen.length, 2);
   });
+});
+
+describe('ask() without a surface', () => {
+  const LOCK_SCREEN = {
+    sender: { name: 'Deploy bot' },
+    notification: {
+      title: 'Deploy in produzione?',
+      body: 'v2.4.1 è pronta.',
+      quickActions: [
+        { name: 'ship', label: 'Vai' },
+        { name: 'hold', label: 'Aspetta' },
+      ],
+    },
+  };
+
+  test('sends no surface, and the answer from the lock screen comes back like any other', async () => {
+    const fromNotification = {
+      ...ANSWER,
+      actionName: 'ship',
+      sourceComponentId: 'notification',
+      context: {},
+    };
+    const { fetch, seen } = fakeFetch(created, outcome('answered', fromNotification));
+
+    const result = await new Nibify({ apiKey: KEY, fetch }).ask(LOCK_SCREEN);
+
+    assert.ok(result.status === 'answered');
+    assert.equal(result.response.actionName, 'ship');
+    assert.equal(result.response.sourceComponentId, 'notification');
+    assert.deepEqual(result.response.context, {});
+    assert.deepEqual(seen[0]?.body, LOCK_SCREEN);
+    assert.match(seen[0]?.headers.get('idempotency-key') ?? '', /^[0-9a-f-]{36}$/);
+  });
+
+  test('timeout and signal stay options, not part of the body', async () => {
+    const { fetch, seen } = fakeFetch(created, hangUntilAborted);
+    const result = await new Nibify({ apiKey: KEY, fetch }).ask({ ...LOCK_SCREEN, timeout: 20 });
+    assert.equal(result.status, 'timeout');
+    assert.deepEqual(seen[0]?.body, LOCK_SCREEN);
+  });
+
+  test('a 5xx on create is retried with the same Idempotency-Key', async () => {
+    const { fetch, seen } = fakeFetch(
+      json(503, { error: { code: 'unavailable', message: 'x' } }),
+      created,
+      outcome('cancelled'),
+    );
+    await new Nibify({ apiKey: KEY, fetch }).ask(LOCK_SCREEN);
+    assert.equal(seen[0]?.headers.get('idempotency-key'), seen[1]?.headers.get('idempotency-key'));
+  });
+});
+
+test('the types hold quickActions to the surface when there is one, as the API does', () => {
+  const nibify = new Nibify({ apiKey: KEY, fetch: fakeFetch().fetch });
+  const ask = (quickActions: { name: string; label: string }[]) => ({
+    sender: { name: 'a' },
+    notification: { title: 't', body: 'b', quickActions },
+  });
+  const built = {
+    root: 'root',
+    dataModel: {},
+    components: [Button('root', { child: 'l', action: { event: { name: 'approve' } } })],
+  };
+  const typed = <const Name extends string>(name: Name) => ({
+    sender: { name: 'a' },
+    notification: { title: 't', body: 'b', quickActions: [{ name, label: 'x' }] },
+  });
+
+  const unsent = (): void => {
+    void nibify.ask(ask([{ name: 'anything', label: 'x' }]));
+    void nibify.ask(SURFACE, ask([{ name: 'anything', label: 'x' }]));
+    void nibify.ask(built, typed('approve'));
+    // @ts-expect-error the built surface dispatches only approve
+    void nibify.ask(built, typed('reject'));
+    void nibify.ask(
+      {
+        root: 'root',
+        dataModel: {},
+        components: [
+          { id: 'root', component: 'Button', child: 'l', action: { event: { name: 'ship' } } },
+        ],
+      },
+      // @ts-expect-error the JSON surface dispatches only ship
+      typed('other'),
+    );
+    void nibify.ask(
+      {
+        root: 'root',
+        dataModel: {},
+        components: [{ id: 'root', action: { event: { name: 'ship' } } }],
+      },
+      typed('ship'),
+    );
+    void nibify.ask(
+      { root: 'root', dataModel: {}, components: [Text('root', { text: 'Fatto.' })] },
+      // @ts-expect-error a surface that dispatches nothing takes no quickAction
+      typed('approve'),
+    );
+    // @ts-expect-error the surface is the first argument, not an option
+    void nibify.ask({ ...ask([]), surface: SURFACE });
+  };
+  assert.equal(typeof unsent, 'function');
 });
 
 describe('notify()', () => {
