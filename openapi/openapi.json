@@ -318,6 +318,7 @@
             "name": "status",
             "required": false,
             "in": "query",
+            "description": "Only the Requests in this status.",
             "schema": {
               "type": "string",
               "enum": [
@@ -333,6 +334,7 @@
             "name": "threadKey",
             "required": false,
             "in": "query",
+            "description": "Only the Requests of the Thread with this key.",
             "schema": {
               "minLength": 1,
               "type": "string"
@@ -342,6 +344,7 @@
             "name": "createdAfter",
             "required": false,
             "in": "query",
+            "description": "Only the Requests created after this instant, not at it.",
             "schema": {
               "format": "date-time",
               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
@@ -352,6 +355,7 @@
             "name": "createdBefore",
             "required": false,
             "in": "query",
+            "description": "Only the Requests created before this instant, not at it.",
             "schema": {
               "format": "date-time",
               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
@@ -362,6 +366,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
+            "description": "How many Requests a page holds.",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -373,6 +378,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
+            "description": "The `nextCursor` of the previous page. Omit it for the first page.",
             "schema": {
               "minLength": 1,
               "type": "string"
@@ -708,6 +714,7 @@
             "name": "wait",
             "required": false,
             "in": "query",
+            "description": "How many seconds to hold the connection open for a terminal state. `0` answers at once.",
             "schema": {
               "minimum": 0,
               "maximum": 30,
@@ -2521,13 +2528,14 @@
     },
     "/v1/threads": {
       "get": {
-        "description": "Every conversation this key can see, the one that last spoke first. Metadata only: `lastMessage` is the notification block of the newest Message, never anything read out of a surface (ADR-0003). One-shot Requests are Threads of one and are listed too — their `threadKey` is null. The list is scoped to the half of the Project the key belongs to: a `sk_test_…` never sees a live conversation.",
+        "description": "Every conversation this key can see, the one that last spoke first. Metadata only: `lastMessage` is the notification block of the newest Message, never anything read out of a surface. One-shot Requests are Threads of one and are listed too — their `threadKey` is null. The list is scoped to the half of the Project the key belongs to: a `sk_test_…` never sees a live conversation.",
         "operationId": "ThreadsController_list",
         "parameters": [
           {
             "name": "limit",
             "required": false,
             "in": "query",
+            "description": "How many Threads a page holds.",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -2539,6 +2547,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
+            "description": "The `nextCursor` of the previous page. Omit it for the first page.",
             "schema": {
               "minLength": 1,
               "type": "string"
@@ -2625,6 +2634,7 @@
             "name": "after",
             "required": false,
             "in": "query",
+            "description": "The `sequence` of the last Message you hold: the page starts after it. `0` reads from the beginning.",
             "schema": {
               "minimum": 0,
               "maximum": 9007199254740991,
@@ -2636,6 +2646,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
+            "description": "How many Messages a page holds.",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -2734,6 +2745,7 @@
             "name": "after",
             "required": false,
             "in": "query",
+            "description": "The `sequence` of the last Message you hold: the page starts after it. `0` reads from the beginning.",
             "schema": {
               "minimum": 0,
               "maximum": 9007199254740991,
@@ -2745,6 +2757,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
+            "description": "How many Messages a page holds.",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -3369,6 +3382,7 @@
                   "request_rejected",
                   "internal_error"
                 ],
+                "description": "What went wrong, for a program to branch on.",
                 "x-enum-descriptions": [
                   "The request could not be read: the body is not valid JSON, or is cut short.",
                   "The password reset token has already been used, or has expired.",
@@ -3447,23 +3461,29 @@
                 ]
               },
               "message": {
-                "type": "string"
+                "type": "string",
+                "description": "What went wrong, in a sentence for a person reading a log."
               },
               "details": {
+                "description": "One entry for each problem found in what you sent, when the error can point at it.",
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
                     "pointer": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Where the problem is, as a dotted path into what you sent: `notification.title`."
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "What is wrong there."
                     },
                     "component": {
+                      "description": "The `id` of the Surface component at fault, when the problem is inside a Surface.",
                       "type": "string"
                     },
                     "property": {
+                      "description": "The property of that component at fault, when there is one.",
                       "type": "string"
                     }
                   },
@@ -3477,7 +3497,8 @@
             "required": [
               "code",
               "message"
-            ]
+            ],
+            "description": "What went wrong."
           }
         },
         "required": [
@@ -3612,29 +3633,35 @@
             "properties": {
               "name": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The name the person sees, free text."
               },
               "icon": {
+                "description": "An icon for the sender, free text, kept and returned as sent.",
                 "type": "string",
                 "minLength": 1
               }
             },
             "required": [
               "name"
-            ]
+            ],
+            "description": "Who the person sees the Request as coming from."
           },
           "notification": {
             "type": "object",
             "properties": {
               "title": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The title of the push and of its Inbox row."
               },
               "body": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The text of the push and of its Inbox row."
               },
               "quickActions": {
+                "description": "Buttons on the push itself, answerable from the lock screen.",
                 "minItems": 1,
                 "type": "array",
                 "items": {
@@ -3642,11 +3669,13 @@
                   "properties": {
                     "name": {
                       "type": "string",
-                      "minLength": 1
+                      "minLength": 1,
+                      "description": "The action the button dispatches, and the `actionName` of the Response it produces. With a `surface`, it must be an action the Surface dispatches."
                     },
                     "label": {
                       "type": "string",
-                      "minLength": 1
+                      "minLength": 1,
+                      "description": "The button’s text on the notification."
                     }
                   },
                   "required": [
@@ -3659,10 +3688,12 @@
             "required": [
               "title",
               "body"
-            ]
+            ],
+            "description": "What the push says, and the buttons it offers."
           },
           "priority": {
             "default": "normal",
+            "description": "How loudly the Request announces itself: `low` only in the Inbox, `normal` with a push, `high` with a push that may break through the person’s quiet hours.",
             "type": "string",
             "enum": [
               "low",
@@ -3671,20 +3702,24 @@
             ]
           },
           "threadKey": {
+            "description": "Your name for a conversation: Requests sent with the same key join one Thread. Without it, the Request is a Thread of its own.",
             "type": "string",
             "minLength": 1,
             "maxLength": 200
           },
           "surface": {
+            "description": "The interactive UI the person answers in, checked against the catalog. Without it, the push and its `quickActions` are the whole Request.",
             "type": "object",
             "properties": {
               "root": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The `id` of the component the Surface is drawn from: always `root`, and one of `components` must carry it."
               },
               "dataModel": {
                 "type": "object",
-                "additionalProperties": {}
+                "additionalProperties": {},
+                "description": "The flat JSON state the components bind to by JSON Pointer, and the source of the values an action sends back."
               },
               "components": {
                 "minItems": 1,
@@ -3692,7 +3727,8 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": {}
-                }
+                },
+                "description": "The components, as a flat list, each one checked against the catalog."
               }
             },
             "required": [
@@ -3702,11 +3738,13 @@
             ]
           },
           "expiresAt": {
+            "description": "When the Request expires if nobody has answered it, in the future. Without it, the Request waits indefinitely.",
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
           "callbackUrl": {
+            "description": "A public `https` URL called once, with a signed `POST`, when the Request reaches a terminal state.",
             "type": "string",
             "maxLength": 2048,
             "format": "uri"
@@ -3721,22 +3759,26 @@
         "type": "object",
         "properties": {
           "requestId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Request’s id: read it, wait for it, withdraw it or nudge it by this."
           },
           "threadId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Thread the Request joined."
           },
           "sequence": {
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "description": "The Request’s position in its Thread, starting at 1."
           },
           "interactionType": {
             "type": "string",
             "enum": [
               "action",
               "conversation"
-            ]
+            ],
+            "description": "Inferred, never sent: `conversation` when the Request joined a Thread that already had Messages, `action` otherwise."
           },
           "status": {
             "type": "string",
@@ -3746,17 +3788,20 @@
               "expired",
               "dismissed",
               "cancelled"
-            ]
+            ],
+            "description": "The status the Request has now. On an idempotent replay, whatever the original has become since."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Request was created."
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Request expires, or null if it never does.",
             "nullable": true
           },
           "environment": {
@@ -3764,12 +3809,14 @@
             "enum": [
               "test",
               "live"
-            ]
+            ],
+            "description": "The Environment of the API key that created it."
           },
           "minCatalogVersion": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
+            "description": "The lowest catalog version that can draw the Surface, worked out by the server. Null when there is no Surface.",
             "nullable": true
           },
           "warnings": {
@@ -3779,19 +3826,22 @@
               "properties": {
                 "code": {
                   "type": "string",
+                  "description": "What the warning is about, for a program to branch on.",
                   "enum": [
                     "catalog_version_too_low"
                   ]
                 },
                 "message": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The same warning, in a sentence for a person."
                 }
               },
               "required": [
                 "code",
                 "message"
               ]
-            }
+            },
+            "description": "What did not stop the Message but changes how it is shown: `catalog_version_too_low` when no installed app can draw the Surface."
           }
         },
         "required": [
@@ -3811,7 +3861,8 @@
         "type": "object",
         "properties": {
           "requestId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Request’s id."
           },
           "status": {
             "type": "string",
@@ -3821,17 +3872,20 @@
               "expired",
               "dismissed",
               "cancelled"
-            ]
+            ],
+            "description": "Where the Request is: `pending` until it reaches one of the four terminal states."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Request was created."
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Request expires, or null if it never does.",
             "nullable": true
           },
           "environment": {
@@ -3839,52 +3893,62 @@
             "enum": [
               "test",
               "live"
-            ]
+            ],
+            "description": "The Environment of the API key that created it."
           },
           "deliveredAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When a phone of the recipient first confirmed the push arrived. Null means not confirmed yet, not that it was not sent.",
             "nullable": true
           },
           "readAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the person first opened it, or null. Never set while `deliveredAt` is not.",
             "nullable": true
           },
           "contentDeletedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the person deleted what was said in this Request, or null. From then on `response.context` is null.",
             "nullable": true
           },
           "response": {
             "type": "object",
             "properties": {
               "responseId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Response’s id."
               },
               "actionName": {
-                "type": "string"
+                "type": "string",
+                "description": "The action the person chose."
               },
               "sourceComponentId": {
-                "type": "string"
+                "type": "string",
+                "description": "The `id` of the component the person answered with, or `notification` for a quick action on the push."
               },
               "context": {
                 "type": "object",
                 "additionalProperties": {},
+                "description": "The values the action sent back, or null when it sent none or the person has since deleted the content.",
                 "nullable": true
               },
               "clientTimestamp": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "When the person answered, by the phone’s clock."
               },
               "answeredAt": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "When the answer reached Nibify."
               }
             },
             "required": [
@@ -3896,6 +3960,7 @@
               "answeredAt"
             ],
             "additionalProperties": false,
+            "description": "The person’s answer: present exactly when `status` is `answered`.",
             "nullable": true
           }
         },
@@ -3910,6 +3975,7 @@
           "contentDeletedAt",
           "response"
         ],
+        "description": "A Request as it stands now, with the Response once it has one.",
         "additionalProperties": false
       },
       "RequestPageDto_Output": {
@@ -3919,10 +3985,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RequestOutcomeDto_Output"
-            }
+            },
+            "description": "The Requests of this page, newest first."
           },
           "nextCursor": {
             "type": "string",
+            "description": "The `cursor` of the next page, or null on the last one.",
             "nullable": true
           }
         },
@@ -3936,7 +4004,8 @@
         "type": "object",
         "properties": {
           "requestId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Request’s id."
           },
           "status": {
             "type": "string",
@@ -3945,17 +4014,20 @@
               "expired",
               "dismissed",
               "cancelled"
-            ]
+            ],
+            "description": "The terminal state the Request is in."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Request was created."
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Request expires, or null if it never does.",
             "nullable": true
           },
           "environment": {
@@ -3963,52 +4035,62 @@
             "enum": [
               "test",
               "live"
-            ]
+            ],
+            "description": "The Environment of the API key that created it."
           },
           "deliveredAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When a phone of the recipient first confirmed the push arrived. Null means not confirmed yet, not that it was not sent.",
             "nullable": true
           },
           "readAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the person first opened it, or null. Never set while `deliveredAt` is not.",
             "nullable": true
           },
           "contentDeletedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the person deleted what was said in this Request, or null. From then on `response.context` is null.",
             "nullable": true
           },
           "response": {
             "type": "object",
             "properties": {
               "responseId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Response’s id."
               },
               "actionName": {
-                "type": "string"
+                "type": "string",
+                "description": "The action the person chose."
               },
               "sourceComponentId": {
-                "type": "string"
+                "type": "string",
+                "description": "The `id` of the component the person answered with, or `notification` for a quick action on the push."
               },
               "context": {
                 "type": "object",
                 "additionalProperties": {},
+                "description": "The values the action sent back, or null when it sent none or the person has since deleted the content.",
                 "nullable": true
               },
               "clientTimestamp": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "When the person answered, by the phone’s clock."
               },
               "answeredAt": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "When the answer reached Nibify."
               }
             },
             "required": [
@@ -4020,6 +4102,7 @@
               "answeredAt"
             ],
             "additionalProperties": false,
+            "description": "The person’s answer: present exactly when `status` is `answered`.",
             "nullable": true
           }
         },
@@ -4073,37 +4156,44 @@
             "properties": {
               "name": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The name the person sees, free text."
               },
               "icon": {
+                "description": "An icon for the sender, free text, kept and returned as sent.",
                 "type": "string",
                 "minLength": 1
               }
             },
             "required": [
               "name"
-            ]
+            ],
+            "description": "Who the person sees the Notification as coming from."
           },
           "notification": {
             "type": "object",
             "properties": {
               "title": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The title of the push and of its Inbox row."
               },
               "body": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The text of the push and of its Inbox row."
               }
             },
             "required": [
               "title",
               "body"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "What the push says."
           },
           "priority": {
             "default": "normal",
+            "description": "How loudly the Notification announces itself: `low` only in the Inbox, `normal` with a push, `high` with a push that may break through the person’s quiet hours.",
             "type": "string",
             "enum": [
               "low",
@@ -4112,15 +4202,18 @@
             ]
           },
           "surface": {
+            "description": "UI shown when the person opens the Notification, checked against the catalog. It may not dispatch an action: a Surface that asks for an answer is a Request.",
             "type": "object",
             "properties": {
               "root": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "The `id` of the component the Surface is drawn from: always `root`, and one of `components` must carry it."
               },
               "dataModel": {
                 "type": "object",
-                "additionalProperties": {}
+                "additionalProperties": {},
+                "description": "The flat JSON state the components bind to by JSON Pointer, and the source of the values an action sends back."
               },
               "components": {
                 "minItems": 1,
@@ -4128,7 +4221,8 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": {}
-                }
+                },
+                "description": "The components, as a flat list, each one checked against the catalog."
               }
             },
             "required": [
@@ -4138,6 +4232,7 @@
             ]
           },
           "threadKey": {
+            "description": "Your name for a conversation: the Notification joins the Thread with this key, and asks for nothing there either. Without it, the Notification is a Thread of its own.",
             "type": "string",
             "minLength": 1,
             "maxLength": 200
@@ -4153,18 +4248,22 @@
         "type": "object",
         "properties": {
           "messageId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Notification’s id, as the `message.delivered` and `message.read` events name it."
           },
           "threadId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Thread the Notification joined."
           },
           "sequence": {
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "description": "The Notification’s position in its Thread, starting at 1."
           },
           "interactionType": {
             "type": "string",
+            "description": "A Notification asks for nothing, in a Thread or out of one.",
             "enum": [
               "informational"
             ]
@@ -4172,19 +4271,22 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Notification was created."
           },
           "environment": {
             "type": "string",
             "enum": [
               "test",
               "live"
-            ]
+            ],
+            "description": "The Environment of the API key that created it."
           },
           "minCatalogVersion": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
+            "description": "The lowest catalog version that can draw the Surface, worked out by the server. Null when there is no Surface.",
             "nullable": true
           },
           "warnings": {
@@ -4194,19 +4296,22 @@
               "properties": {
                 "code": {
                   "type": "string",
+                  "description": "What the warning is about, for a program to branch on.",
                   "enum": [
                     "catalog_version_too_low"
                   ]
                 },
                 "message": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The same warning, in a sentence for a person."
                 }
               },
               "required": [
                 "code",
                 "message"
               ]
-            }
+            },
+            "description": "What did not stop the Message but changes how it is shown: `catalog_version_too_low` when no installed app can draw the Surface."
           }
         },
         "required": [
@@ -5537,10 +5642,12 @@
         "type": "object",
         "properties": {
           "threadId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Thread’s id."
           },
           "threadKey": {
             "type": "string",
+            "description": "The key the Thread was named with, or null for a one-shot Request’s own.",
             "nullable": true
           },
           "environment": {
@@ -5548,17 +5655,20 @@
             "enum": [
               "test",
               "live"
-            ]
+            ],
+            "description": "The Environment the Thread belongs to."
           },
           "messageCount": {
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "description": "How many Messages the Thread holds."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Thread was created, by its first Message."
           },
           "lastMessage": {
             "$ref": "#/components/schemas/ThreadMessage_Output"
@@ -5572,18 +5682,21 @@
           "createdAt",
           "lastMessage"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A conversation, and the newest Message in it."
       },
       "ThreadMessage_Output": {
         "type": "object",
         "properties": {
           "messageId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Message’s id. For a Request, the same as its `requestId`."
           },
           "sequence": {
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "description": "The Message’s position in its Thread, starting at 1."
           },
           "interactionType": {
             "type": "string",
@@ -5591,7 +5704,8 @@
               "informational",
               "action",
               "conversation"
-            ]
+            ],
+            "description": "What the Message asks for: `informational` nothing, `action` an answer, `conversation` the next turn of the exchange."
           },
           "status": {
             "type": "string",
@@ -5603,16 +5717,19 @@
               "cancelled",
               null
             ],
+            "description": "The Request’s status, or null for a Notification, which has none.",
             "nullable": true
           },
           "sender": {
             "type": "object",
             "properties": {
               "name": {
-                "type": "string"
+                "type": "string",
+                "description": "The name the person sees."
               },
               "icon": {
                 "type": "string",
+                "description": "The icon it was sent with, or null.",
                 "nullable": true
               }
             },
@@ -5620,16 +5737,19 @@
               "name",
               "icon"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Who the Message was sent as."
           },
           "notification": {
             "type": "object",
             "properties": {
               "title": {
-                "type": "string"
+                "type": "string",
+                "description": "The title of the push and of its Inbox row."
               },
               "body": {
-                "type": "string"
+                "type": "string",
+                "description": "The text of the push and of its Inbox row."
               },
               "quickActions": {
                 "type": "array",
@@ -5637,10 +5757,12 @@
                   "type": "object",
                   "properties": {
                     "name": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The action the button dispatches."
                     },
                     "label": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The button’s text on the notification."
                     }
                   },
                   "required": [
@@ -5648,7 +5770,8 @@
                     "label"
                   ],
                   "additionalProperties": false
-                }
+                },
+                "description": "The buttons on the push, empty when it had none."
               }
             },
             "required": [
@@ -5656,41 +5779,48 @@
               "body",
               "quickActions"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "What the push said. Empty once the person has deleted the content."
           },
           "minCatalogVersion": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
+            "description": "The lowest catalog version that can draw its Surface. Null when it has none, or once the content is deleted.",
             "nullable": true
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Message was sent."
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Request expires, or null if it never does.",
             "nullable": true
           },
           "deliveredAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When a phone of the recipient first confirmed the push arrived. Null means not confirmed yet, not that it was not sent.",
             "nullable": true
           },
           "readAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the person first opened it, or null. Never set while `deliveredAt` is not.",
             "nullable": true
           },
           "contentDeletedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the person deleted what was said in this Message, or null. The Message stays in the Thread, emptied.",
             "nullable": true
           }
         },
@@ -5708,7 +5838,8 @@
           "readAt",
           "contentDeletedAt"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A Message of a Thread: what the push said and its receipts, never its Surface."
       },
       "ThreadPageDto_Output": {
         "type": "object",
@@ -5717,10 +5848,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Thread_Output"
-            }
+            },
+            "description": "The Threads of this page, the one that last spoke first."
           },
           "nextCursor": {
             "type": "string",
+            "description": "The `cursor` of the next page, or null on the last one.",
             "nullable": true
           }
         },
@@ -5734,10 +5867,12 @@
         "type": "object",
         "properties": {
           "threadId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Thread’s id."
           },
           "threadKey": {
             "type": "string",
+            "description": "The key the Thread was named with, or null for a one-shot Request’s own.",
             "nullable": true
           },
           "environment": {
@@ -5745,17 +5880,20 @@
             "enum": [
               "test",
               "live"
-            ]
+            ],
+            "description": "The Environment the Thread belongs to."
           },
           "messageCount": {
             "type": "integer",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "description": "How many Messages the Thread holds."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the Thread was created, by its first Message."
           },
           "lastMessage": {
             "$ref": "#/components/schemas/ThreadMessage_Output"
@@ -5767,12 +5905,14 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/ThreadMessage_Output"
-                }
+                },
+                "description": "The Messages of this page, oldest first."
               },
               "nextAfter": {
                 "type": "integer",
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991,
+                "description": "The `after` of the next page, or null when this page reached the end of the Thread.",
                 "nullable": true
               }
             },
@@ -5780,7 +5920,8 @@
               "items",
               "nextAfter"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "One page of the Thread’s Messages, oldest first."
           }
         },
         "required": [
@@ -5792,6 +5933,7 @@
           "lastMessage",
           "messages"
         ],
+        "description": "A Thread, and one page of its Messages.",
         "additionalProperties": false
       },
       "ThreadMessagesDto_Output": {
@@ -6545,31 +6687,36 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "The event’s id, the same on every retry of it: deduplicate on it."
           },
           "type": {
             "type": "string",
             "enum": [
               "message.delivered"
-            ]
+            ],
+            "description": "Which of the six events this is."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the event happened."
           },
           "data": {
             "type": "object",
             "properties": {
               "messageId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Message this event is about. For a Request, the same as its `requestId`."
               },
               "environment": {
                 "type": "string",
                 "enum": [
                   "test",
                   "live"
-                ]
+                ],
+                "description": "The Environment the Message was sent into."
               },
               "status": {
                 "type": "string",
@@ -6581,15 +6728,18 @@
                   "cancelled",
                   null
                 ],
+                "description": "The Request’s status as it stands, or null for a Notification, which has none.",
                 "nullable": true
               },
               "deliveredAt": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "When a phone of the recipient first confirmed the push arrived."
               },
               "readAt": {
                 "type": "string",
+                "description": "Not read yet: `message.read` says when it is.",
                 "nullable": true,
                 "enum": [
                   null
@@ -6602,7 +6752,8 @@
               "status",
               "deliveredAt",
               "readAt"
-            ]
+            ],
+            "description": "The Message, and its two receipts."
           }
         },
         "required": [
@@ -6616,31 +6767,36 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "The event’s id, the same on every retry of it: deduplicate on it."
           },
           "type": {
             "type": "string",
             "enum": [
               "message.read"
-            ]
+            ],
+            "description": "Which of the six events this is."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the event happened."
           },
           "data": {
             "type": "object",
             "properties": {
               "messageId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Message this event is about. For a Request, the same as its `requestId`."
               },
               "environment": {
                 "type": "string",
                 "enum": [
                   "test",
                   "live"
-                ]
+                ],
+                "description": "The Environment the Message was sent into."
               },
               "status": {
                 "type": "string",
@@ -6652,17 +6808,20 @@
                   "cancelled",
                   null
                 ],
+                "description": "The Request’s status as it stands, or null for a Notification, which has none.",
                 "nullable": true
               },
               "deliveredAt": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "When a phone of the recipient first confirmed the push arrived."
               },
               "readAt": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "When the person first opened the Message."
               }
             },
             "required": [
@@ -6671,7 +6830,8 @@
               "status",
               "deliveredAt",
               "readAt"
-            ]
+            ],
+            "description": "The Message, and its two receipts."
           }
         },
         "required": [
@@ -6685,28 +6845,34 @@
         "type": "object",
         "properties": {
           "responseId": {
-            "type": "string"
+            "type": "string",
+            "description": "The Response’s id."
           },
           "actionName": {
-            "type": "string"
+            "type": "string",
+            "description": "The action the person chose."
           },
           "sourceComponentId": {
-            "type": "string"
+            "type": "string",
+            "description": "The `id` of the component the person answered with, or `notification` for a quick action on the push."
           },
           "context": {
             "type": "object",
             "additionalProperties": {},
+            "description": "The values the action sent back, or null when it sent none.",
             "nullable": true
           },
           "clientTimestamp": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the person answered, by the phone’s clock."
           },
           "answeredAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the answer reached Nibify."
           }
         },
         "required": [
@@ -6716,43 +6882,50 @@
           "context",
           "clientTimestamp",
           "answeredAt"
-        ]
+        ],
+        "description": "The person’s answer."
       },
       "MessageAnsweredEvent": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "The event’s id, the same on every retry of it: deduplicate on it."
           },
           "type": {
             "type": "string",
             "enum": [
               "message.answered"
-            ]
+            ],
+            "description": "Which of the six events this is."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the event happened."
           },
           "data": {
             "type": "object",
             "properties": {
               "requestId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Request this event is about."
               },
               "status": {
                 "type": "string",
                 "enum": [
                   "answered"
-                ]
+                ],
+                "description": "The terminal state the Request reached."
               },
               "environment": {
                 "type": "string",
                 "enum": [
                   "test",
                   "live"
-                ]
+                ],
+                "description": "The Environment the Message was sent into."
               },
               "response": {
                 "$ref": "#/components/schemas/WebhookResponse"
@@ -6763,7 +6936,8 @@
               "status",
               "environment",
               "response"
-            ]
+            ],
+            "description": "The Request, as it ended."
           }
         },
         "required": [
@@ -6777,40 +6951,47 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "The event’s id, the same on every retry of it: deduplicate on it."
           },
           "type": {
             "type": "string",
             "enum": [
               "message.expired"
-            ]
+            ],
+            "description": "Which of the six events this is."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the event happened."
           },
           "data": {
             "type": "object",
             "properties": {
               "requestId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Request this event is about."
               },
               "status": {
                 "type": "string",
                 "enum": [
                   "expired"
-                ]
+                ],
+                "description": "The terminal state the Request reached."
               },
               "environment": {
                 "type": "string",
                 "enum": [
                   "test",
                   "live"
-                ]
+                ],
+                "description": "The Environment the Message was sent into."
               },
               "response": {
                 "type": "string",
+                "description": "Only an answered Request has a Response.",
                 "nullable": true,
                 "enum": [
                   null
@@ -6822,7 +7003,8 @@
               "status",
               "environment",
               "response"
-            ]
+            ],
+            "description": "The Request, as it ended."
           }
         },
         "required": [
@@ -6836,40 +7018,47 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "The event’s id, the same on every retry of it: deduplicate on it."
           },
           "type": {
             "type": "string",
             "enum": [
               "message.dismissed"
-            ]
+            ],
+            "description": "Which of the six events this is."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the event happened."
           },
           "data": {
             "type": "object",
             "properties": {
               "requestId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Request this event is about."
               },
               "status": {
                 "type": "string",
                 "enum": [
                   "dismissed"
-                ]
+                ],
+                "description": "The terminal state the Request reached."
               },
               "environment": {
                 "type": "string",
                 "enum": [
                   "test",
                   "live"
-                ]
+                ],
+                "description": "The Environment the Message was sent into."
               },
               "response": {
                 "type": "string",
+                "description": "Only an answered Request has a Response.",
                 "nullable": true,
                 "enum": [
                   null
@@ -6881,7 +7070,8 @@
               "status",
               "environment",
               "response"
-            ]
+            ],
+            "description": "The Request, as it ended."
           }
         },
         "required": [
@@ -6895,40 +7085,47 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "The event’s id, the same on every retry of it: deduplicate on it."
           },
           "type": {
             "type": "string",
             "enum": [
               "message.cancelled"
-            ]
+            ],
+            "description": "Which of the six events this is."
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When the event happened."
           },
           "data": {
             "type": "object",
             "properties": {
               "requestId": {
-                "type": "string"
+                "type": "string",
+                "description": "The Request this event is about."
               },
               "status": {
                 "type": "string",
                 "enum": [
                   "cancelled"
-                ]
+                ],
+                "description": "The terminal state the Request reached."
               },
               "environment": {
                 "type": "string",
                 "enum": [
                   "test",
                   "live"
-                ]
+                ],
+                "description": "The Environment the Message was sent into."
               },
               "response": {
                 "type": "string",
+                "description": "Only an answered Request has a Response.",
                 "nullable": true,
                 "enum": [
                   null
@@ -6940,7 +7137,8 @@
               "status",
               "environment",
               "response"
-            ]
+            ],
+            "description": "The Request, as it ended."
           }
         },
         "required": [
