@@ -102,7 +102,7 @@ describe('onPendingOfThread', () => {
 
 describe('isRace', () => {
   test('the request_already_* codes of a 409, and nothing else', () => {
-    for (const state of ['answered', 'expired', 'dismissed', 'cancelled']) {
+    for (const state of ['answered', 'expired', 'dismissed', 'cancelled'] as const) {
       assert.ok(isRace({ code: `request_already_${state}`, message: '' }), state);
     }
     assert.equal(isRace({ code: 'request_not_found', message: '' }), false);
