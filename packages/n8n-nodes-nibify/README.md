@@ -24,6 +24,6 @@ Add a Nibify node with **Ask & Wait** and **Composition: Simple**:
 The workflow pauses without holding a worker. When the person presses **File it**, it resumes from the **Answered** output with `action: "file"`; an expired, dismissed or cancelled request resumes from **Not Answered** with its `status`.
 
 - [Quickstart](https://nibify.app/docs/quickstart): the first request, in a few minutes.
-- [Documentation](https://nibify.app/docs): the n8n guide, JSON surfaces, outputs and expiry.
+- [n8n guide](https://nibify.app/docs/n8n-ask-and-wait): JSON surfaces, both outputs, expiry, Cancel and Nudge.
 
 Code, catalog and SDK: <https://github.com/nibify/nibify-sdk> · MIT License.

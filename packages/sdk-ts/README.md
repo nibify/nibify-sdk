@@ -33,6 +33,6 @@ if (result.status === 'answered') result.response.actionName; // 'file'
 ESM, Node ≥ 20.3, no runtime dependencies.
 
 - [Quickstart](https://nibify.app/docs/quickstart): the first request, in a few minutes.
-- [Documentation](https://nibify.app/docs): concepts, guides and the SDK reference.
+- [SDK reference](https://nibify.app/docs/sdk): every method, outcome, error and retry.
 
 Code and catalog: <https://github.com/nibify/nibify-sdk> · MIT License.
