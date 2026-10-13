@@ -9,9 +9,32 @@ import { Nibify } from '@nibify/sdk';
 
 const nibify = new Nibify(); // NIBIFY_API_KEY; baseUrl di default https://api.nibify.app
 
+const result = await nibify.ask({
+  sender: { name: 'Deploy bot' },
+  notification: {
+    title: 'Deploy in produzione?',
+    body: 'v2.4.1 è pronta.',
+    quickActions: [
+      { name: 'ship', label: 'Vai' },
+      { name: 'hold', label: 'Aspetta' },
+    ],
+  },
+});
+
+if (result.status === 'answered') result.response.actionName; // 'ship'
+```
+
+- È la forma più corta: niente surface, la persona risponde dalla lock screen coi bottoni della notifica. La risposta arriva con `sourceComponentId: 'notification'` e `context` vuoto.
+- Per una card con campi e bottoni, la surface va come primo argomento:
+
+```ts
 const result = await nibify.ask(surface, {
   sender: { name: 'Outreach agent' },
-  notification: { title: 'Approvazione richiesta', body: "L'agente vuole inviare 3 email." },
+  notification: {
+    title: 'Approvazione richiesta',
+    body: "L'agente vuole inviare 3 email.",
+    quickActions: [{ name: 'approve', label: 'Approva' }],
+  },
 });
 
 if (result.status === 'answered') {
@@ -20,7 +43,7 @@ if (result.status === 'answered') {
 }
 ```
 
-- `surface` è JSON A2UI conforme al catalogo Nibify.
+- `surface` è JSON A2UI conforme al catalogo Nibify. Con la surface, ogni quickAction nomina un'azione che la surface manda — l'API rifiuta le altre, e i tipi anche, quando la surface è scritta nella chiamata o costruita coi costruttori qui sotto. Senza surface i nomi sono liberi.
 - `ask()` aspetta finché la richiesta non è chiusa, anche per sempre. Un esito non è un errore: si risolve in `answered`, `expired`, `dismissed`, `cancelled`, oppure `timeout` se hai passato `timeout` (ms) o `signal` e l'attesa è finita prima. `timeout` non è `expired`: la richiesta resta aperta e `result.request.wait()` riprende ad aspettarla.
 - Errori HTTP e di rete sollevano `NibifyError`, con `status` e `code` dell'API. `ask()` ritenta da sé su rete, `429` e `5xx`, con lo stesso `Idempotency-Key`: una richiesta sola.
 - `notify()` manda una notifica che non chiede risposta, e non ritenta.

@@ -1,6 +1,7 @@
 export {
   DEFAULT_BASE_URL,
   Nibify,
+  type ActionNameOf,
   type AskOptions,
   type Environment,
   type NibifyOptions,

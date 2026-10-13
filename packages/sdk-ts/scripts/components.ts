@@ -297,14 +297,22 @@ function render(generator: Generator, sources: CatalogSources): string {
       ...jsDoc(member.docs),
       `${key(member.name)}${member.required ? '' : '?'}: ${member.type};`,
     ]);
+    const dispatches = props.some(
+      (member) => member.name === 'action' && member.required && member.type === 'Action',
+    );
     blocks.push(
       `export type ${name}Props = {\n${lines.join('\n')}\n};`,
       `export type ${name}Component = { id: ${id.type}; component: ${discriminator.type} } & ${name}Props;`,
-      `export function ${name}(id: ${id.type}, props: ${name}Props${optional ? ' = {}' : ''}): ${name}Component {\n` +
-        `return { id, component: ${literal(name)}, ...props };\n}`,
+      dispatches
+        ? `export function ${name}<const Name extends string>(id: ${id.type}, props: ${name}Props & Dispatches<Name>): ${name}Component & Dispatches<Name> {\n` +
+            `return { id, component: ${literal(name)}, ...props };\n}`
+        : `export function ${name}(id: ${id.type}, props: ${name}Props${optional ? ' = {}' : ''}): ${name}Component {\n` +
+            `return { id, component: ${literal(name)}, ...props };\n}`,
     );
   }
   blocks.push(
+    '/** The action name a component dispatches, kept literal so `ask()` can hold quickActions to it. */\n' +
+      'export type Dispatches<Name extends string> = { action: { event: { name: Name } } };',
     `export type Component = ${union(components.map(([name]) => `${name}Component`))};`,
     `export type ComponentType = Component['component'];`,
   );

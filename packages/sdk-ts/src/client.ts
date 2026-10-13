@@ -33,7 +33,38 @@ export interface WaitOptions {
   signal?: AbortSignal;
 }
 
-export type AskOptions = Omit<CreateRequestBody, 'surface'> & WaitOptions;
+type Notification = CreateRequestBody['notification'];
+
+/**
+ * The action names a surface dispatches, or `string` when its type does not say — a surface
+ * typed `Surface`, or JSON whose names widened. A surface that dispatches none gives `never`.
+ */
+export type ActionNameOf<S extends Surface> = S['components'][number] extends infer C
+  ? C extends unknown
+    ? string extends keyof C
+      ? string
+      : C extends { action: { event: { name: infer Name extends string } } }
+        ? Name
+        : never
+    : never
+  : never;
+
+/**
+ * The Request without its surface. Given a surface, each quickAction names an action that
+ * surface dispatches, as `POST /v1/requests` demands; without one, any name goes (CONTEXT.md,
+ * quickAction).
+ */
+export type AskOptions<S extends Surface | undefined = undefined> = Omit<
+  CreateRequestBody,
+  'surface' | 'notification'
+> & {
+  notification: Omit<Notification, 'quickActions'> & {
+    quickActions?: {
+      name: S extends Surface ? ActionNameOf<S> : string;
+      label: string;
+    }[];
+  };
+} & WaitOptions;
 
 export type NotifyOptions = RequestBody<'NotificationsController_create'>;
 
@@ -69,12 +100,19 @@ export class Nibify {
     this.threads = new Threads(this.#transport);
   }
 
-  /** Resolves with the outcome, never rejects on one: `expired` and `timeout` are values. */
-  async ask(surface: Surface, options: AskOptions): Promise<AskResult> {
+  /**
+   * Resolves with the outcome, never rejects on one: `expired` and `timeout` are values.
+   * Without a surface the person answers from the notification's quickActions alone.
+   */
+  ask(options: AskOptions): Promise<AskResult>;
+  ask<const S extends Surface>(surface: S, options: AskOptions<S>): Promise<AskResult>;
+  async ask(first: Surface | AskOptions, second?: AskOptions<Surface>): Promise<AskResult> {
+    const [surface, options] =
+      second === undefined ? [undefined, first as AskOptions] : [first as Surface, second];
     const { timeout, signal, ...body } = options;
     const created = await this.#transport.send({
       operation: 'RequestsController_create',
-      body: { ...body, surface },
+      body: surface === undefined ? body : { ...body, surface },
       headers: { 'idempotency-key': globalThis.crypto.randomUUID() },
       retry: true,
       signal,

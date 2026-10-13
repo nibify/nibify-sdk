@@ -337,7 +337,10 @@ export type ButtonProps = {
 
 export type ButtonComponent = { id: ComponentId; component: 'Button' } & ButtonProps;
 
-export function Button(id: ComponentId, props: ButtonProps): ButtonComponent {
+export function Button<const Name extends string>(
+  id: ComponentId,
+  props: ButtonProps & Dispatches<Name>,
+): ButtonComponent & Dispatches<Name> {
   return { id, component: 'Button', ...props };
 }
 
@@ -520,6 +523,9 @@ export type DateTimeInputComponent = {
 export function DateTimeInput(id: ComponentId, props: DateTimeInputProps): DateTimeInputComponent {
   return { id, component: 'DateTimeInput', ...props };
 }
+
+/** The action name a component dispatches, kept literal so `ask()` can hold quickActions to it. */
+export type Dispatches<Name extends string> = { action: { event: { name: Name } } };
 
 export type Component =
   | TextComponent
