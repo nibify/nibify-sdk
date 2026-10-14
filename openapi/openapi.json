@@ -2756,7 +2756,7 @@
     },
     "/v1/me": {
       "get": {
-        "description": "The id and the email of the account this Session belongs to — what the Account page shows, read from the server rather than remembered by the browser. Nothing here is settable yet: there is nowhere an email is changed, and nowhere the account is deleted.",
+        "description": "The id and the email of the account this Session belongs to — what the Account page shows, read from the server rather than remembered by the browser. Nothing here is settable yet: there is nowhere an email is changed.",
         "operationId": "MeController_me",
         "parameters": [],
         "responses": {
@@ -2787,6 +2787,95 @@
           }
         ],
         "summary": "The person signed in",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/me/deletion": {
+      "post": {
+        "description": "Deletes the person and everything they own, at once and for good: every Project, its API keys, webhook endpoints, Threads, Messages and answers, every Device and every Session. An agent holding one of those keys is refused with `401` from then on, a long poll waiting on one of those Requests included, and callbacks still being retried are dropped. A receipt is emailed to the address the account had.",
+        "operationId": "MeController_delete",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeletionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The account no longer exists."
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`incorrect_password`. Nothing was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `password` is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Only failed attempts count. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Delete the account",
         "tags": [
           "dashboard"
         ]
@@ -5985,6 +6074,20 @@
           "email"
         ],
         "additionalProperties": false
+      },
+      "AccountDeletionDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The password of the account, typed again to confirm the deletion."
+          }
+        },
+        "required": [
+          "password"
+        ]
       },
       "Thread_Output": {
         "type": "object",
