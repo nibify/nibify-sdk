@@ -499,6 +499,7 @@ export interface components {
         code:
           | 'malformed_request'
           | 'invalid_reset_token'
+          | 'invalid_login_token'
           | 'unauthorized'
           | 'api_key_revoked'
           | 'session_revoked'
