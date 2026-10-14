@@ -145,6 +145,78 @@
         ]
       }
     },
+    "/v1/auth/sign-in/login-token": {
+      "post": {
+        "description": "The road a QR takes to the same place as `POST /v1/auth/sign-in` with `device`: a session token, and a Device born holding it. The token comes from the fragment of the URL the QR encodes, minted by `POST /v1/auth/login-tokens`; it can be spent once, and within ten minutes. `device` is required — a QR signs in an installation, never a browser.",
+        "operationId": "AuthController_signInWithLoginToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginTokenSignInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A live session, and the id of the Device born with it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedInDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_login_token`. Spent, expired, or never issued — one answer for the three. Scan the QR again: the dashboard draws a new one by itself.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `device.platform` must be `ios` or `android`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Only failed attempts count. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sign the app in with the token a dashboard QR carries",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/v1/auth/sign-out": {
       "post": {
         "description": "Deletes the session behind the bearer token, which also detaches it from the Device that was holding it. Always answers `204`, including for a token that was already dead: signing out is a state to arrive at, not an operation to succeed at, and a 401 here would tell an unauthenticated caller which tokens are live.",
@@ -287,6 +359,44 @@
         "summary": "Spend a reset token and set a new password",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/v1/auth/login-tokens": {
+      "post": {
+        "description": "A one-time token for the person calling, as the URL to draw as a QR. The app scans it and spends it at `POST /v1/auth/sign-in/login-token`, which signs it in as this person with no password typed. Ten minutes of life, one use; a photo of the QR within those minutes is a session, so draw it only where the person is looking. Earlier tokens stay valid until they expire or are spent.",
+        "operationId": "LoginTokensController_mint",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "The URL to encode, and when it stops working.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MintedLoginTokenDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Mint the token a login QR carries",
+        "tags": [
+          "dashboard"
         ]
       }
     },
@@ -3423,6 +3533,7 @@
                 "enum": [
                   "malformed_request",
                   "invalid_reset_token",
+                  "invalid_login_token",
                   "unauthorized",
                   "api_key_revoked",
                   "session_revoked",
@@ -3462,6 +3573,7 @@
                 "x-enum-descriptions": [
                   "The request could not be read: the body is not valid JSON, or is cut short.",
                   "The password reset token has already been used, or has expired.",
+                  "The login token in the QR has already been used, or has expired. Scan the QR the dashboard shows now.",
                   "The credential is missing, malformed or unknown. Send it as `Authorization: Bearer <token>`.",
                   "The API key was revoked. Create a new one in the dashboard.",
                   "The session was signed out. Sign in again.",
@@ -3498,6 +3610,7 @@
                   "Something failed on Nibify’s side. Retrying may succeed."
                 ],
                 "x-enum-statuses": [
+                  "400",
                   "400",
                   "400",
                   "401",
@@ -3669,6 +3782,42 @@
         ],
         "additionalProperties": false
       },
+      "LoginTokenSignInDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "The `token` parameter in the fragment of the URL the QR encodes."
+          },
+          "device": {
+            "type": "object",
+            "properties": {
+              "platform": {
+                "type": "string",
+                "enum": [
+                  "ios",
+                  "android"
+                ]
+              },
+              "catalogVersion": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "platform",
+              "catalogVersion"
+            ]
+          }
+        },
+        "required": [
+          "token",
+          "device"
+        ]
+      },
       "ForgotPasswordDto": {
         "type": "object",
         "properties": {
@@ -3700,6 +3849,27 @@
           "token",
           "password"
         ]
+      },
+      "MintedLoginTokenDto_Output": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "What the QR encodes: an `https` URL with the token in its fragment, `#token=…`. The app reads the fragment, and a server this URL is ever opened against never receives it."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Ten minutes after it was minted. Ask for another one then."
+          }
+        },
+        "required": [
+          "url",
+          "expiresAt"
+        ],
+        "additionalProperties": false
       },
       "CreateRequestDto": {
         "type": "object",
