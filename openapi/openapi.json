@@ -46,6 +46,25 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address, or for this email, in the last few minutes. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "summary": "Register, and receive a Project and an API key",
@@ -92,6 +111,25 @@
           },
           "422": {
             "description": "`invalid_request_body`. `device.platform` must be `ios` or `android`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address, or for this email, in the last few minutes. Only failed attempts count. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -160,6 +198,25 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address, or for this email, in the last few minutes. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "summary": "Ask for a password-reset email",
@@ -199,6 +256,25 @@
           },
           "422": {
             "description": "`invalid_request_body`. The password must be between 12 and 128 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Only failed attempts count. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -3417,7 +3493,7 @@
                   "`callbackUrl` cannot be called: only public `https` endpoints are.",
                   "The surface does not conform to the catalog, or does not fit the endpoint. `details` names the component and property.",
                   "The webhook URL cannot be called: only public `https` endpoints are.",
-                  "The Project’s per-second or daily limit in this Environment is spent. Retry after the seconds in `Retry-After`.",
+                  "A limit is spent: the Project’s per-second or daily one in this Environment, or the attempts at an authentication endpoint. Retry after the seconds in `Retry-After`.",
                   "Any other request the API could not accept. The status says which.",
                   "Something failed on Nibify’s side. Retrying may succeed."
                 ],
