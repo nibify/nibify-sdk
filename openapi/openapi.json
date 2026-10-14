@@ -3637,7 +3637,7 @@
                 "description": "The name the person sees, free text."
               },
               "icon": {
-                "description": "An icon for the sender, free text, kept and returned as sent.",
+                "description": "An icon for the sender, free text, kept and returned as sent. Nothing draws it: the person sees the sender by its `name`.",
                 "type": "string",
                 "minLength": 1
               }
@@ -4160,7 +4160,7 @@
                 "description": "The name the person sees, free text."
               },
               "icon": {
-                "description": "An icon for the sender, free text, kept and returned as sent.",
+                "description": "An icon for the sender, free text, kept and returned as sent. Nothing draws it: the person sees the sender by its `name`.",
                 "type": "string",
                 "minLength": 1
               }
