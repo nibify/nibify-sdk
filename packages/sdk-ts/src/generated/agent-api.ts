@@ -706,7 +706,7 @@ export interface components {
       sender: {
         /** @description The name the person sees, free text. */
         name: string;
-        /** @description An icon for the sender, free text, kept and returned as sent. */
+        /** @description An icon for the sender, free text, kept and returned as sent. Nothing draws it: the person sees the sender by its `name`. */
         icon?: string;
       };
       /** @description What the push says. */
@@ -913,7 +913,7 @@ export interface components {
       sender: {
         /** @description The name the person sees, free text. */
         name: string;
-        /** @description An icon for the sender, free text, kept and returned as sent. */
+        /** @description An icon for the sender, free text, kept and returned as sent. Nothing draws it: the person sees the sender by its `name`. */
         icon?: string;
       };
       /** @description What the push says, and the buttons it offers. */
