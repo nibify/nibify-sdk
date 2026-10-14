@@ -505,6 +505,7 @@ export interface components {
           | 'session_revoked'
           | 'session_not_a_device'
           | 'invalid_credentials'
+          | 'incorrect_password'
           | 'origin_not_allowed'
           | 'submission_rejected'
           | 'not_found'

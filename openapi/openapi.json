@@ -299,7 +299,7 @@
     },
     "/v1/auth/reset-password": {
       "post": {
-        "description": "The token is the one in the emailed link, and it can be spent once. Existing sessions are not ended by this, and signing every device out at once is deliberately not offered: `GET /v1/devices` lists the installations and `DELETE /v1/devices/{deviceId}` ends one, which is the shape somebody who has lost a phone actually needs. Somebody who merely forgot a password has not lost anything to sign out.",
+        "description": "The token is the one in the emailed link, and it can be spent once. Every session of the account ends with it, the app on each phone included, which goes back to its sign-in screen; the Devices are not revoked, and answer again once signed in. A login QR not yet scanned stops working too. An email tells the account the password changed. Nobody is signed in by this: sign in with the new password.",
         "operationId": "AuthController_resetPassword",
         "parameters": [],
         "requestBody": {
@@ -314,7 +314,7 @@
         },
         "responses": {
           "204": {
-            "description": "The password is the new one."
+            "description": "The password is the new one, and the account has no session left."
           },
           "400": {
             "description": "`invalid_reset_token`. Spent, expired, or never issued. Ask for another.",
@@ -395,6 +395,86 @@
           }
         ],
         "summary": "Mint the token a login QR carries",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/me/password": {
+      "post": {
+        "description": "Takes the current password and a new one. The session that sends this stays signed in; every other session of the account ends, the app on each phone included, which goes back to its sign-in screen. The Devices themselves are not revoked: they answer again once signed in. A login QR not yet scanned stops working too. An email tells the account the password changed. `POST /v1/auth/reset-password` ends the sessions the same way.",
+        "operationId": "PasswordController_change",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The password is the new one, and this is the only session left."
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`incorrect_password`. The current password is not the account’s; nothing changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. The new password must be between 12 and 128 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Only failed attempts count. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Change the password, and sign out every other session",
         "tags": [
           "dashboard"
         ]
@@ -3539,6 +3619,7 @@
                   "session_revoked",
                   "session_not_a_device",
                   "invalid_credentials",
+                  "incorrect_password",
                   "origin_not_allowed",
                   "submission_rejected",
                   "not_found",
@@ -3579,6 +3660,7 @@
                   "The session was signed out. Sign in again.",
                   "The session belongs to a browser, and only the app may call this endpoint.",
                   "The email and password do not match an account.",
+                  "The password given to confirm this act is not the account’s. Nothing was changed.",
                   "The endpoint only accepts submissions from the Nibify site.",
                   "The submission looked automated and was not recorded.",
                   "No endpoint answers this method and path.",
@@ -3618,6 +3700,7 @@
                   "401",
                   "401",
                   "401",
+                  "403",
                   "403",
                   "403",
                   "404",
@@ -3870,6 +3953,25 @@
           "expiresAt"
         ],
         "additionalProperties": false
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
       },
       "CreateRequestDto": {
         "type": "object",
