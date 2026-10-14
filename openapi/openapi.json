@@ -1334,6 +1334,74 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/demos": {
+      "post": {
+        "description": "Sends the next of six demos into the `test` half of the Project, in one Thread, as Nibify: an approval with quickActions, a single choice, a multiple choice, a form, a slider, and a Notification. The seventh call starts again from the first. It is sent under the oldest unrevoked `test` key of the Project, without its secret, and it rings even inside your quiet hours and right after another push: you asked for it. Read what becomes of it at `GET /v1/messages/{messageId}`.",
+        "operationId": "DemosController_send",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "The Project to send the demo from.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The demo was sent, and which of the six it was.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentDemoDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`project_not_found`. Somebody else’s, never existed, or deleted — the same answer for all three.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`no_test_key`. Every `test` key of the Project is revoked: a revoked key signs nothing, a demo included. Create a `test` key and send again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Send the next demo to your phone",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/v1/projects/{projectId}/webhook-endpoints": {
       "get": {
         "description": "Both halves in one list, oldest first — `environment` says which is which. The signing secret is not here and is not on these rows: one Project has one secret, and `GET /v1/projects` returns it. An endpoint that is `disabled` is not a destination at all: no delivery is attempted and none is queued.",
@@ -3723,6 +3791,7 @@
                   "email_taken",
                   "project_limit_reached",
                   "last_project",
+                  "no_test_key",
                   "webhook_endpoint_duplicate",
                   "request_already_answered",
                   "request_already_expired",
@@ -3764,6 +3833,7 @@
                   "An account already exists for this email. Sign in instead.",
                   "The account already has as many Projects as it may. Delete one first.",
                   "The account’s only Project cannot be deleted. Create another first.",
+                  "Every test key of the Project is revoked, and a demo is sent under one. Create a test key first.",
                   "This Environment of the Project already subscribes that URL.",
                   "The Request was already answered, and the answer can be read.",
                   "The Request expired before it was answered.",
@@ -3801,6 +3871,7 @@
                   "404",
                   "404",
                   "405",
+                  "409",
                   "409",
                   "409",
                   "409",
@@ -4761,6 +4832,57 @@
           "minCatalogVersion",
           "warnings"
         ]
+      },
+      "SentDemoDto_Output": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string",
+            "description": "The Message just sent: read its receipts and its answer at `GET /v1/messages/{messageId}`."
+          },
+          "threadId": {
+            "type": "string",
+            "description": "The Thread every demo joins."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "request",
+              "notification"
+            ],
+            "description": "Which door it went through: a Request waits for an answer, a Notification does not."
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Which demo this was, from 1. The one after the last is the first again."
+          },
+          "of": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "How many demos there are."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the push it sent."
+          },
+          "shows": {
+            "type": "string",
+            "description": "What this demo is there to show, in a few words."
+          }
+        },
+        "required": [
+          "messageId",
+          "threadId",
+          "kind",
+          "position",
+          "of",
+          "title",
+          "shows"
+        ],
+        "additionalProperties": false
       },
       "WebhookEndpointsDto_Output": {
         "type": "object",
