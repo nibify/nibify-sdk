@@ -17,7 +17,10 @@ export interface NibifyOptions {
   apiKey?: string;
   /** Falls back to `NIBIFY_BASE_URL`, then to `https://api.nibify.app`. */
   baseUrl?: string;
-  /** Retries on a network failure, a `429` or a `5xx`, where a call is retried at all. */
+  /**
+   * Retries on a network failure, a `429` or a `5xx`, where a call is retried at all. The
+   * long poll of a wait keeps its own, longer budget.
+   */
   maxRetries?: number;
   fetch?: typeof fetch;
 }

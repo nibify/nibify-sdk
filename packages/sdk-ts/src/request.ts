@@ -5,6 +5,12 @@ import type { Transport } from './transport.ts';
 /** The server holds one long poll for at most this long (`wait` ≤ 30). */
 const MAX_WAIT_SECONDS = 30;
 
+/**
+ * A dropped long poll says nothing about the Request, so the wait keeps its own budget,
+ * about a minute of backoff, whatever the client's `maxRetries`. nibify-sdk#50.
+ */
+const WAIT_MAX_RETRIES = 10;
+
 type Outcome = SuccessBody<'RequestsController_awaitResponse'>;
 
 /** The Request as the API described it at that moment, and the handle to act on it. */
@@ -63,6 +69,7 @@ export class RequestHandle {
           pathParams: { id: this.id },
           query: { wait: Math.min(MAX_WAIT_SECONDS, Math.ceil(remaining / 1000)) },
           retry: true,
+          maxRetries: WAIT_MAX_RETRIES,
           signal,
         });
       } catch (error) {

@@ -9,6 +9,8 @@ export interface Call<O extends CoveredOperation> {
   body?: unknown;
   headers?: Record<string, string>;
   retry: boolean;
+  /** Overrides the client's `maxRetries` for this call. */
+  maxRetries?: number;
   signal?: AbortSignal | undefined;
 }
 
@@ -52,8 +54,9 @@ export class Transport {
       ...(call.signal ? { signal: call.signal } : {}),
     };
 
+    const maxRetries = call.maxRetries ?? this.#options.maxRetries;
     for (let attempt = 0; ; attempt++) {
-      const retriesLeft = call.retry && attempt < this.#options.maxRetries;
+      const retriesLeft = call.retry && attempt < maxRetries;
       let response: Response;
       try {
         response = await this.#options.fetch(url, init);
