@@ -229,6 +229,47 @@ describe('ask()', () => {
   });
 });
 
+describe('ask() through a dropped wait', () => {
+  const dropped: Reply = () => Promise.reject(new TypeError('fetch failed'));
+  const unavailable = json(503, { error: { code: 'service_unavailable', message: 'redeploy' } });
+
+  test('a connection dropped during the wait re-issues the long poll, whatever maxRetries says', async () => {
+    const { fetch, seen } = fakeFetch(created, dropped, unavailable, outcome('answered', ANSWER));
+    const result = await new Nibify({ apiKey: KEY, fetch, maxRetries: 0 }).ask(SURFACE, ASK);
+
+    assert.equal(result.status, 'answered');
+    assert.deepEqual(
+      seen.slice(1).map(({ url }) => url.pathname),
+      Array(3).fill('/v1/requests/msg_1/response'),
+    );
+  });
+
+  test('the retries stay inside the timeout, which ends them with timeout', async () => {
+    const { fetch } = fakeFetch(created, ...Array<Reply>(20).fill(dropped));
+    const result = await new Nibify({ apiKey: KEY, fetch }).ask(SURFACE, { ...ASK, timeout: 300 });
+    assert.equal(result.status, 'timeout');
+  });
+
+  test('past the cap of consecutive failures, the failure reaches the caller', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { fetch, seen } = fakeFetch(created, ...Array<Reply>(11).fill(dropped));
+    const raised = new Nibify({ apiKey: KEY, fetch, maxRetries: 0 }).ask(SURFACE, ASK).then(
+      () => assert.fail('the wait should have raised'),
+      (error: unknown) => error,
+    );
+
+    let settled = false;
+    void raised.finally(() => (settled = true));
+    while (!settled) {
+      await new Promise((resolve) => setImmediate(resolve));
+      t.mock.timers.tick(10_000);
+    }
+
+    assert.ok((await raised) instanceof NibifyError);
+    assert.equal(seen.length, 12);
+  });
+});
+
 describe('ask() without a surface', () => {
   const LOCK_SCREEN = {
     sender: { name: 'Deploy bot' },
