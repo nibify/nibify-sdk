@@ -506,6 +506,7 @@ export interface components {
           | 'session_revoked'
           | 'session_not_a_device'
           | 'invalid_credentials'
+          | 'plan_limit_reached'
           | 'incorrect_password'
           | 'sign_up_closed'
           | 'email_not_verified'
@@ -521,7 +522,6 @@ export interface components {
           | 'webhook_endpoint_not_found'
           | 'email_taken'
           | 'email_already_verified'
-          | 'project_limit_reached'
           | 'last_project'
           | 'no_test_key'
           | 'webhook_endpoint_duplicate'
@@ -1088,6 +1088,15 @@ export interface operations {
           'application/json': components['schemas']['ApiErrorDto'];
         };
       };
+      /** @description `plan_limit_reached`. The live Messages the account’s plan allows this month are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. The message names the plan, its limit and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes. The `test` Environment is never counted, so an `sk_test_…` key is never refused this way. */
+      402: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiErrorDto'];
+        };
+      };
       /** @description `surface_invalid` names the component and property at fault, the `root` the renderer would not find, or the quick action whose `name` is not an action the surface dispatches; `idempotency_conflict` means this key was already used for a different request; `callback_url_invalid` means the `callbackUrl` is not a public `https` endpoint this API is willing to call; `invalid_request_body` is a malformed envelope. */
       422: {
         headers: {
@@ -1361,6 +1370,15 @@ export interface operations {
       };
       /** @description `unauthorized` for a missing or unusable key, `api_key_revoked` for a revoked one. */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApiErrorDto'];
+        };
+      };
+      /** @description `plan_limit_reached`. The live Messages the account’s plan allows this month are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. The message names the plan, its limit and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes. The `test` Environment is never counted, so an `sk_test_…` key is never refused this way. */
+      402: {
         headers: {
           [name: string]: unknown;
         };
