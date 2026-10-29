@@ -557,7 +557,7 @@
     },
     "/v1/requests": {
       "post": {
-        "description": "Creates a pending Request and validates its Surface against the catalog. Send `Idempotency-Key` only if you retry automatically: the returned `requestId` is already the identity of the Request. Send `callbackUrl` to be called once, with a signed `POST`, when the Request reaches a terminal state — that is what an n8n \"Ask & wait\" node resumes on, and the alternative to holding a long poll open.",
+        "description": "Creates a pending Request and validates its Surface against the catalog. Send `Idempotency-Key` only if you retry automatically: the returned `requestId` is already the identity of the Request. Send `callbackUrl` to be called once, with a signed `POST`, when the Request reaches a terminal state — a workflow that pauses can resume on it, instead of holding a long poll open.",
         "operationId": "RequestsController_create",
         "parameters": [
           {
@@ -3697,7 +3697,7 @@
     },
     "/v1/leads": {
       "post": {
-        "description": "Records that an email filled one of the site's forms, with the version of the privacy policy it was shown. Unauthenticated, and accepted only from the Nibify site. Submitting the same form with the same email again is not an error: the answers, the tracking and the policy version are replaced, and an unsubscription is undone.",
+        "description": "Records that an email filled one of the site's forms, with the version of the privacy policy it was shown. Unauthenticated, and accepted only from the Nibify site. Submitting the same form with the same email again is not an error: the answers, the page and the policy version are replaced, the tracking is kept from the first submission that carried one, and an unsubscription is undone. Of the referrer only the origin is stored.",
         "operationId": "LeadsController_join",
         "parameters": [],
         "requestBody": {
@@ -3733,6 +3733,25 @@
           },
           "422": {
             "description": "`invalid_request_body` — an unknown form, answers outside the schema of the form, a malformed email, or a missing privacy policy version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

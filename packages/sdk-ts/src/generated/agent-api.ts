@@ -16,7 +16,7 @@ export interface paths {
     put?: never;
     /**
      * Create a Request
-     * @description Creates a pending Request and validates its Surface against the catalog. Send `Idempotency-Key` only if you retry automatically: the returned `requestId` is already the identity of the Request. Send `callbackUrl` to be called once, with a signed `POST`, when the Request reaches a terminal state — that is what an n8n "Ask & wait" node resumes on, and the alternative to holding a long poll open.
+     * @description Creates a pending Request and validates its Surface against the catalog. Send `Idempotency-Key` only if you retry automatically: the returned `requestId` is already the identity of the Request. Send `callbackUrl` to be called once, with a signed `POST`, when the Request reaches a terminal state — a workflow that pauses can resume on it, instead of holding a long poll open.
      */
     post: operations['RequestsController_create'];
     delete?: never;
