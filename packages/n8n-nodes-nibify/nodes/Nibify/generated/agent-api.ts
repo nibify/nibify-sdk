@@ -499,6 +499,7 @@ export interface components {
         code:
           | 'malformed_request'
           | 'invalid_reset_token'
+          | 'invalid_verification_token'
           | 'invalid_login_token'
           | 'unauthorized'
           | 'api_key_revoked'
@@ -507,6 +508,7 @@ export interface components {
           | 'invalid_credentials'
           | 'incorrect_password'
           | 'sign_up_closed'
+          | 'email_not_verified'
           | 'origin_not_allowed'
           | 'submission_rejected'
           | 'not_found'
@@ -518,6 +520,7 @@ export interface components {
           | 'device_not_found'
           | 'webhook_endpoint_not_found'
           | 'email_taken'
+          | 'email_already_verified'
           | 'project_limit_reached'
           | 'last_project'
           | 'no_test_key'

@@ -3,7 +3,7 @@
   "paths": {
     "/v1/auth/sign-up": {
       "post": {
-        "description": "Creates the person, their first Project and its API key in one call, and signs them in. This is US0: the API key exists at the moment of registration and not after it. The key is shown here and nowhere else — only its prefix and a hash are stored, so no endpoint can return it again.",
+        "description": "Creates the person, their first Project and its API key in one call, and signs them in. This is US0: the API key exists at the moment of registration and not after it. The key is shown here and nowhere else — only its prefix and a hash are stored, so no endpoint can return it again. An email with a verification link goes to the address: the `test` key works without it, a `live` key waits for it.",
         "operationId": "AuthController_signUp",
         "parameters": [],
         "requestBody": {
@@ -247,6 +247,71 @@
           }
         },
         "summary": "End this session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-email": {
+      "post": {
+        "description": "The token is the one in the emailed link, and it works for a day. It marks the account’s email verified, which is what a `live` API key waits for. No Session is needed, so the link works in any browser; nobody is signed in by it. Following it again changes nothing.",
+        "operationId": "AuthController_verifyEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The email is verified, or already was."
+          },
+          "400": {
+            "description": "`invalid_verification_token`. Expired, never issued, or for an account that no longer exists. Ask for another from the dashboard.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `token` is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Only failed attempts count. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Spend the link from the verification email",
         "tags": [
           "auth"
         ]
@@ -2602,7 +2667,7 @@
     },
     "/v1/projects/{projectId}/api-keys": {
       "post": {
-        "description": "The second and last place a whole credential exists in a readable form — the first is registration. Only its prefix and a SHA-256 are stored, so nothing can return it again. `environment` says which half of the Project the key speaks for and is required: the prefix it comes back with — `sk_test_…` or `sk_live_…` — is what an SDK reads its own environment from, and a key of one half neither creates nor reads the Requests of the other. Minting does not revoke anything: rotating is mint, put the new key in the agent, then revoke the old one, in that order, so that nothing stops working in between.",
+        "description": "The second and last place a whole credential exists in a readable form — the first is registration. Only its prefix and a SHA-256 are stored, so nothing can return it again. `environment` says which half of the Project the key speaks for and is required: the prefix it comes back with — `sk_test_…` or `sk_live_…` — is what an SDK reads its own environment from, and a key of one half neither creates nor reads the Requests of the other. Minting does not revoke anything: rotating is mint, put the new key in the agent, then revoke the old one, in that order, so that nothing stops working in between. A `live` key needs the account’s email verified; a `test` key never does, and the `live` keys minted before stay valid either way.",
         "operationId": "ProjectsController_mint",
         "parameters": [
           {
@@ -2638,6 +2703,16 @@
           },
           "401": {
             "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`email_not_verified`. The key asked for is `live`, and the account’s email is not verified yet: follow the link in the email, or ask for another with `POST /v1/me/email-verification`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2834,7 +2909,7 @@
     },
     "/v1/me": {
       "get": {
-        "description": "The id and the email of the account this Session belongs to — what the Account page shows, read from the server rather than remembered by the browser. Nothing here is settable yet: there is nowhere an email is changed.",
+        "description": "The id and the email of the account this Session belongs to, and whether that email is verified — what the Account page shows, read from the server rather than remembered by the browser. Nothing here is settable yet: there is nowhere an email is changed.",
         "operationId": "MeController_me",
         "parameters": [],
         "responses": {
@@ -2865,6 +2940,66 @@
           }
         ],
         "summary": "The person signed in",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/me/email-verification": {
+      "post": {
+        "description": "Emails a new link to the account’s own address — never to one given here, so it cannot be used to write to anybody else. The link works for a day, and any earlier one still unexpired keeps working beside it.",
+        "operationId": "MeController_sendEmailVerification",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "The email is on its way."
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`email_already_verified`. Nothing was sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Send the verification link again",
         "tags": [
           "dashboard"
         ]
@@ -3780,6 +3915,7 @@
                 "enum": [
                   "malformed_request",
                   "invalid_reset_token",
+                  "invalid_verification_token",
                   "invalid_login_token",
                   "unauthorized",
                   "api_key_revoked",
@@ -3788,6 +3924,7 @@
                   "invalid_credentials",
                   "incorrect_password",
                   "sign_up_closed",
+                  "email_not_verified",
                   "origin_not_allowed",
                   "submission_rejected",
                   "not_found",
@@ -3799,6 +3936,7 @@
                   "device_not_found",
                   "webhook_endpoint_not_found",
                   "email_taken",
+                  "email_already_verified",
                   "project_limit_reached",
                   "last_project",
                   "no_test_key",
@@ -3822,6 +3960,7 @@
                 "x-enum-descriptions": [
                   "The request could not be read: the body is not valid JSON, or is cut short.",
                   "The password reset token has already been used, or has expired.",
+                  "The email verification link has expired, or was never issued. Ask for another.",
                   "The login token in the QR has already been used, or has expired. Scan the QR the dashboard shows now.",
                   "The credential is missing, malformed or unknown. Send it as `Authorization: Bearer <token>`.",
                   "The API key was revoked. Create a new one in the dashboard.",
@@ -3830,6 +3969,7 @@
                   "The email and password do not match an account.",
                   "The password given to confirm this act is not the account’s. Nothing was changed.",
                   "Registration is by invitation, and this email is not on the list. Nothing was created.",
+                  "A live API key needs the account’s email verified first. Follow the link in the email, or ask for another.",
                   "The endpoint only accepts submissions from the Nibify site.",
                   "The submission looked automated and was not recorded.",
                   "No endpoint answers this method and path, or a value in the path cannot name anything.",
@@ -3841,6 +3981,7 @@
                   "No Device of yours has that id.",
                   "The Project has no webhook endpoint with that id.",
                   "An account already exists for this email. Sign in instead.",
+                  "The account’s email is already verified. Nothing was sent.",
                   "The account already has as many Projects as it may. Delete one first.",
                   "The account’s only Project cannot be deleted. Create another first.",
                   "Every test key of the Project is revoked, and a demo is sent under one. Create a test key first.",
@@ -3864,6 +4005,7 @@
                   "400",
                   "400",
                   "400",
+                  "400",
                   "401",
                   "401",
                   "401",
@@ -3873,6 +4015,7 @@
                   "403",
                   "403",
                   "403",
+                  "403",
                   "404",
                   "404",
                   "404",
@@ -3881,6 +4024,7 @@
                   "404",
                   "404",
                   "404",
+                  "409",
                   "409",
                   "409",
                   "409",
@@ -4069,6 +4213,18 @@
         "required": [
           "token",
           "device"
+        ]
+      },
+      "VerifyEmailDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "token"
         ]
       },
       "ForgotPasswordDto": {
@@ -6199,11 +6355,15 @@
           },
           "email": {
             "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
           }
         },
         "required": [
           "id",
-          "email"
+          "email",
+          "emailVerified"
         ],
         "additionalProperties": false
       },
