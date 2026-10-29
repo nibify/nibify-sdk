@@ -611,6 +611,16 @@
               }
             }
           },
+          "402": {
+            "description": "`plan_limit_reached`. The live Messages the account’s plan allows this month are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. The message names the plan, its limit and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes. The `test` Environment is never counted, so an `sk_test_…` key is never refused this way.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
           "422": {
             "description": "`surface_invalid` names the component and property at fault, the `root` the renderer would not find, or the quick action whose `name` is not an action the surface dispatches; `idempotency_conflict` means this key was already used for a different request; `callback_url_invalid` means the `callbackUrl` is not a public `https` endpoint this API is willing to call; `invalid_request_body` is a malformed envelope.",
             "content": {
@@ -1360,6 +1370,16 @@
           },
           "401": {
             "description": "`unauthorized` for a missing or unusable key, `api_key_revoked` for a revoked one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "`plan_limit_reached`. The live Messages the account’s plan allows this month are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. The message names the plan, its limit and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes. The `test` Environment is never counted, so an `sk_test_…` key is never refused this way.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2496,8 +2516,8 @@
               }
             }
           },
-          "409": {
-            "description": "`project_limit_reached`. One person may hold 100 Projects at once; deleting one makes room.",
+          "402": {
+            "description": "`plan_limit_reached`. The account already holds as many Projects as its plan allows; deleted Projects are not counted. The message names the plan, its limit and where to upgrade. An account above the limit — after moving to a smaller plan — keeps every Project it has, and creates none until it is back under.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2940,6 +2960,44 @@
           }
         ],
         "summary": "The person signed in",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/me/plan": {
+      "get": {
+        "description": "The plan the account holds and its limits, beside what is spent: the live Messages of this calendar month in UTC, across every Project, and the Projects held. What the Account page shows. The plan is changed elsewhere: nothing here sets it.",
+        "operationId": "MeController_planUsage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The plan and its usage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanUsageDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "The plan, and what it has spent this month",
         "tags": [
           "dashboard"
         ]
@@ -3941,6 +3999,7 @@
                   "session_revoked",
                   "session_not_a_device",
                   "invalid_credentials",
+                  "plan_limit_reached",
                   "incorrect_password",
                   "sign_up_closed",
                   "email_not_verified",
@@ -3956,7 +4015,6 @@
                   "webhook_endpoint_not_found",
                   "email_taken",
                   "email_already_verified",
-                  "project_limit_reached",
                   "last_project",
                   "no_test_key",
                   "webhook_endpoint_duplicate",
@@ -3986,6 +4044,7 @@
                   "The session was signed out. Sign in again.",
                   "The session belongs to a browser, and only the app may call this endpoint.",
                   "The email and password do not match an account.",
+                  "The account’s plan allows no more of this: its live Messages for the month, or its Projects. Nothing was created. Not worth retrying until the month turns or the plan changes; the `test` Environment is never counted.",
                   "The password given to confirm this act is not the account’s. Nothing was changed.",
                   "Registration is by invitation, and this email is not on the list. Nothing was created.",
                   "A live API key needs the account’s email verified first. Follow the link in the email, or ask for another.",
@@ -4001,7 +4060,6 @@
                   "The Project has no webhook endpoint with that id.",
                   "An account already exists for this email. Sign in instead.",
                   "The account’s email is already verified. Nothing was sent.",
-                  "The account already has as many Projects as it may. Delete one first.",
                   "The account’s only Project cannot be deleted. Create another first.",
                   "Every test key of the Project is revoked, and a demo is sent under one. Create a test key first.",
                   "This Environment of the Project already subscribes that URL.",
@@ -4030,6 +4088,7 @@
                   "401",
                   "401",
                   "401",
+                  "402",
                   "403",
                   "403",
                   "403",
@@ -4043,7 +4102,6 @@
                   "404",
                   "404",
                   "404",
-                  "409",
                   "409",
                   "409",
                   "409",
@@ -5604,6 +5662,25 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
             "nullable": true
+          },
+          "answer": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "answeredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "action",
+              "answeredAt"
+            ],
+            "additionalProperties": false,
+            "nullable": true
           }
         },
         "required": [
@@ -5620,7 +5697,8 @@
           "createdAt",
           "expiresAt",
           "deliveredAt",
-          "readAt"
+          "readAt",
+          "answer"
         ],
         "additionalProperties": false
       },
@@ -5830,6 +5908,25 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
             "nullable": true
           },
+          "answer": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "answeredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "action",
+              "answeredAt"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
           "surface": {
             "type": "object",
             "properties": {
@@ -5872,6 +5969,7 @@
           "expiresAt",
           "deliveredAt",
           "readAt",
+          "answer",
           "surface"
         ],
         "additionalProperties": false
@@ -6383,6 +6481,101 @@
           "id",
           "email",
           "emailVerified"
+        ],
+        "additionalProperties": false
+      },
+      "PlanUsageDto_Output": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "pro"
+            ],
+            "description": "The plan the account holds."
+          },
+          "period": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "end": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "start",
+              "end"
+            ],
+            "additionalProperties": false,
+            "description": "The calendar month in UTC the live Messages are counted in, `[start, end)`."
+          },
+          "liveMessages": {
+            "type": "object",
+            "properties": {
+              "used": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "How many are spent."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "How many the plan allows."
+              }
+            },
+            "required": [
+              "used",
+              "limit"
+            ],
+            "additionalProperties": false,
+            "description": "Live Requests and notifications sent this month, across every Project of the account. Deleting one gives nothing back; `test` is never counted."
+          },
+          "projects": {
+            "type": "object",
+            "properties": {
+              "used": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "How many are spent."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "How many the plan allows."
+              }
+            },
+            "required": [
+              "used",
+              "limit"
+            ],
+            "additionalProperties": false,
+            "description": "Projects held, deleted ones aside."
+          },
+          "historyDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many days back the Inbox, the History, a Thread and the Messages page reach; `null` is all of it. Older Messages are hidden, not deleted.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "plan",
+          "period",
+          "liveMessages",
+          "projects",
+          "historyDays"
         ],
         "additionalProperties": false
       },
