@@ -517,7 +517,6 @@ export interface components {
           | 'api_key_not_found'
           | 'device_not_found'
           | 'webhook_endpoint_not_found'
-          | 'method_not_allowed'
           | 'email_taken'
           | 'project_limit_reached'
           | 'last_project'
