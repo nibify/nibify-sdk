@@ -17,7 +17,7 @@ Add a Nibify node with **Ask & Wait** and **Composition: Simple**:
 | Field | Value |
 | --- | --- |
 | Sender Name | `invoice-flow` |
-| Title | `Studio Rossi invoice: €1,240, due Oct 30` |
+| Title | `Kiwi Studio invoice: $1,240, due Oct 30` |
 | Text | `Read from the PDF. File it as consulting, or fix it first.` |
 | Buttons | **File it** → `file` · **Fix it** → `fix` |
 

@@ -14,7 +14,7 @@ const nibify = new Nibify(); // reads NIBIFY_API_KEY
 const result = await nibify.ask({
   sender: { name: 'invoice-flow' },
   notification: {
-    title: 'Studio Rossi invoice: €1,240, due Oct 30',
+    title: 'Kiwi Studio invoice: $1,240, due Oct 30',
     body: 'Read from the PDF. File it as consulting, or fix it first.',
     quickActions: [
       { name: 'file', label: 'File it' },
