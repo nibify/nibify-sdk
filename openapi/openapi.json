@@ -2967,7 +2967,7 @@
     },
     "/v1/me/plan": {
       "get": {
-        "description": "The plan the account holds and its limits, beside what is spent: the live Messages of this calendar month in UTC, across every Project, and the Projects held. What the Account page shows. The plan is changed elsewhere: nothing here sets it.",
+        "description": "The plan the account holds and its limits, beside what is spent: the live Messages of this calendar month in UTC, across every Project, and the Projects held; and the subscription that pays for it. What the Account page shows. Only Stripe changes the plan, through `POST /v1/me/billing/checkout` and the billing portal.",
         "operationId": "MeController_planUsage",
         "parameters": [],
         "responses": {
@@ -3065,7 +3065,7 @@
     },
     "/v1/me/deletion": {
       "post": {
-        "description": "Deletes the person and everything they own, at once and for good: every Project, its API keys, webhook endpoints, Threads, Messages and answers, every Device and every Session. An agent holding one of those keys is refused with `401` from then on, a long poll waiting on one of those Requests included, and callbacks still being retried are dropped. A receipt is emailed to the address the account had.",
+        "description": "Deletes the person and everything they own, at once and for good: every Project, its API keys, webhook endpoints, Threads, Messages and answers, every Device and every Session. A subscription ends at once, before anything else, and its invoices are kept. An agent holding one of those keys is refused with `401` from then on, a long poll waiting on one of those Requests included, and callbacks still being retried are dropped. A receipt is emailed to the address the account had.",
         "operationId": "MeController_delete",
         "parameters": [
           {
@@ -3139,6 +3139,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "`billing_unavailable`. The subscription could not be ended, so nothing was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3147,6 +3157,142 @@
           }
         ],
         "summary": "Delete the account",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/me/billing/checkout": {
+      "post": {
+        "description": "Opens a Stripe Checkout for the Pro plan, at the Prices on offer now — the Founder’s while that offer lasts, kept for as long as the subscription is. Checkout asks for the billing address and, for a business, the VAT number. The plan becomes Pro when Stripe confirms the payment, a moment after the browser comes back to the Account page. Any other Checkout of the account still open stops working.",
+        "operationId": "BillingController_checkout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Where to send the browser.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirectDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`already_subscribed`. Nothing was opened: the billing portal manages it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `cadence` is `monthly` or `yearly`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`billing_unavailable`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Subscribe to Pro",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/me/billing/portal": {
+      "post": {
+        "description": "Opens the Stripe billing portal: switching between monthly and yearly, the card, the billing details and VAT number, the invoices, and cancelling — which takes effect at the end of the period already paid.",
+        "operationId": "BillingController_portal",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Where to send the browser.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirectDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`not_subscribed`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`billing_unavailable`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Manage the subscription",
         "tags": [
           "dashboard"
         ]
@@ -4015,6 +4161,8 @@
                   "webhook_endpoint_not_found",
                   "email_taken",
                   "email_already_verified",
+                  "already_subscribed",
+                  "not_subscribed",
                   "last_project",
                   "no_test_key",
                   "webhook_endpoint_duplicate",
@@ -4031,7 +4179,8 @@
                   "webhook_url_invalid",
                   "rate_limited",
                   "request_rejected",
-                  "internal_error"
+                  "internal_error",
+                  "billing_unavailable"
                 ],
                 "description": "What went wrong, for a program to branch on.",
                 "x-enum-descriptions": [
@@ -4060,6 +4209,8 @@
                   "The Project has no webhook endpoint with that id.",
                   "An account already exists for this email. Sign in instead.",
                   "The account’s email is already verified. Nothing was sent.",
+                  "The account already pays for Pro. Nothing was opened: change or cancel the subscription from the billing portal.",
+                  "The account has never subscribed, so there is no billing to manage.",
                   "The account’s only Project cannot be deleted. Create another first.",
                   "Every test key of the Project is revoked, and a demo is sent under one. Create a test key first.",
                   "This Environment of the Project already subscribes that URL.",
@@ -4076,7 +4227,8 @@
                   "The webhook URL cannot be called: only public `https` endpoints are.",
                   "A limit is spent: the Project’s per-second or daily one in this Environment, or the attempts at an authentication endpoint. Retry after the seconds in `Retry-After`.",
                   "Any other request the API could not accept. The status says which.",
-                  "Something failed on Nibify’s side. Retrying may succeed."
+                  "Something failed on Nibify’s side. Retrying may succeed.",
+                  "Payments could not be reached, or are not open on this deployment. Nothing was changed; retrying may succeed."
                 ],
                 "x-enum-statuses": [
                   "400",
@@ -4111,6 +4263,8 @@
                   "409",
                   "409",
                   "409",
+                  "409",
+                  "409",
                   "413",
                   "415",
                   "422",
@@ -4120,7 +4274,8 @@
                   "422",
                   "429",
                   "4XX",
-                  "500"
+                  "500",
+                  "503"
                 ]
               },
               "message": {
@@ -6568,6 +6723,81 @@
             "maximum": 9007199254740991,
             "description": "How many days back the Inbox, the History, a Thread and the Messages page reach; `null` is all of it. Older Messages are hidden, not deleted.",
             "nullable": true
+          },
+          "billing": {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "boolean",
+                "description": "Whether this deployment takes payments. While it does not, upgrading is not open."
+              },
+              "offer": {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "founder"
+                ],
+                "description": "The Prices a Checkout opened now would charge: Pro’s own, or the Founder’s while that offer lasts."
+              },
+              "customer": {
+                "type": "boolean",
+                "description": "Whether the account has ever subscribed, and so has a billing portal to open."
+              },
+              "subscription": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "string",
+                    "enum": [
+                      "standard",
+                      "founder"
+                    ],
+                    "description": "Which Prices it pays: a Founder keeps theirs for as long as it lasts."
+                  },
+                  "cadence": {
+                    "type": "string",
+                    "enum": [
+                      "monthly",
+                      "yearly"
+                    ],
+                    "description": "How often it renews."
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "trialing",
+                      "past_due"
+                    ],
+                    "description": "`past_due` after a failed payment: still Pro while the payment is retried, until the subscription is closed."
+                  },
+                  "endsAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "description": "When a scheduled cancellation takes effect: Pro until then.",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "price",
+                  "cadence",
+                  "status",
+                  "endsAt"
+                ],
+                "additionalProperties": false,
+                "description": "The subscription that makes the plan Pro; `null` when there is none.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "available",
+              "offer",
+              "customer",
+              "subscription"
+            ],
+            "additionalProperties": false,
+            "description": "Paying for the plan, which only Stripe changes."
           }
         },
         "required": [
@@ -6575,7 +6805,8 @@
           "period",
           "liveMessages",
           "projects",
-          "historyDays"
+          "historyDays",
+          "billing"
         ],
         "additionalProperties": false
       },
@@ -6592,6 +6823,36 @@
         "required": [
           "password"
         ]
+      },
+      "CheckoutDto": {
+        "type": "object",
+        "properties": {
+          "cadence": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
+            "description": "Which of the two Prices to subscribe to: billed every month, or once a year."
+          }
+        },
+        "required": [
+          "cadence"
+        ]
+      },
+      "BillingRedirectDto_Output": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The page on Stripe to send the browser to. It works once, and not for long."
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
       },
       "Thread_Output": {
         "type": "object",
