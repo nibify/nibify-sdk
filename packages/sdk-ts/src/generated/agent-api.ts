@@ -522,6 +522,8 @@ export interface components {
           | 'webhook_endpoint_not_found'
           | 'email_taken'
           | 'email_already_verified'
+          | 'already_subscribed'
+          | 'not_subscribed'
           | 'last_project'
           | 'no_test_key'
           | 'webhook_endpoint_duplicate'
@@ -538,7 +540,8 @@ export interface components {
           | 'webhook_url_invalid'
           | 'rate_limited'
           | 'request_rejected'
-          | 'internal_error';
+          | 'internal_error'
+          | 'billing_unavailable';
         /** @description What went wrong, in a sentence for a person reading a log. */
         message: string;
         /** @description One entry for each problem found in what you sent, when the error can point at it. */
