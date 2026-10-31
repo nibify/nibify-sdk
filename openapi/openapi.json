@@ -612,7 +612,7 @@
             }
           },
           "402": {
-            "description": "`plan_limit_reached`. The live Messages the account’s plan allows this month are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. The message names the plan, its limit and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes. The `test` Environment is never counted, so an `sk_test_…` key is never refused this way.",
+            "description": "`plan_limit_reached`. The Messages the account’s plan allows this month in this key’s Environment are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. `test` and `live` have a monthly allowance each, counted apart, so a spent `test` never refuses a `live` key, nor the other way round. The message names the Environment, the plan, its limit, the day the count starts again and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1379,7 +1379,7 @@
             }
           },
           "402": {
-            "description": "`plan_limit_reached`. The live Messages the account’s plan allows this month are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. The message names the plan, its limit and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes. The `test` Environment is never counted, so an `sk_test_…` key is never refused this way.",
+            "description": "`plan_limit_reached`. The Messages the account’s plan allows this month in this key’s Environment are spent — Requests and notifications together, across every Project of the account, counted from the first day of the month in UTC. `test` and `live` have a monthly allowance each, counted apart, so a spent `test` never refuses a `live` key, nor the other way round. The message names the Environment, the plan, its limit, the day the count starts again and where to upgrade. Nothing was created. Unlike a `429` there is no `Retry-After`: retrying is refused the same way until the month turns or the plan changes.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2967,7 +2967,7 @@
     },
     "/v1/me/plan": {
       "get": {
-        "description": "The plan the account holds and its limits, beside what is spent: the live Messages of this calendar month in UTC, across every Project, and the Projects held; and the subscription that pays for it. What the Account page shows. Only Stripe changes the plan, through `POST /v1/me/billing/checkout` and the billing portal.",
+        "description": "The plan the account holds and its limits, beside what is spent: the live and the `test` Messages of this calendar month in UTC, each across every Project, and the Projects held; and the subscription that pays for it. What the Account page shows. Only Stripe changes the plan, through `POST /v1/me/billing/checkout` and the billing portal.",
         "operationId": "MeController_planUsage",
         "parameters": [],
         "responses": {
@@ -4193,7 +4193,7 @@
                   "The session was signed out. Sign in again.",
                   "The session belongs to a browser, and only the app may call this endpoint.",
                   "The email and password do not match an account.",
-                  "The account’s plan allows no more of this: its live Messages for the month, or its Projects. Nothing was created. Not worth retrying until the month turns or the plan changes; the `test` Environment is never counted.",
+                  "The account’s plan allows no more of this: its Messages for the month in this Environment, `test` and `live` counted apart, or its Projects. Nothing was created. Not worth retrying until the month turns or the plan changes.",
                   "The password given to confirm this act is not the account’s. Nothing was changed.",
                   "Registration is by invitation, and this email is not on the list. Nothing was created.",
                   "A live API key needs the account’s email verified first. Follow the link in the email, or ask for another.",
@@ -6669,7 +6669,7 @@
               "end"
             ],
             "additionalProperties": false,
-            "description": "The calendar month in UTC the live Messages are counted in, `[start, end)`."
+            "description": "The calendar month in UTC the Messages are counted in, `[start, end)`."
           },
           "liveMessages": {
             "type": "object",
@@ -6692,7 +6692,30 @@
               "limit"
             ],
             "additionalProperties": false,
-            "description": "Live Requests and notifications sent this month, across every Project of the account. Deleting one gives nothing back; `test` is never counted."
+            "description": "Live Requests and notifications sent this month, across every Project of the account. Deleting one gives nothing back."
+          },
+          "testMessages": {
+            "type": "object",
+            "properties": {
+              "used": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "How many are spent."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "How many the plan allows."
+              }
+            },
+            "required": [
+              "used",
+              "limit"
+            ],
+            "additionalProperties": false,
+            "description": "`test` Requests and notifications sent this month, counted the same way and apart from `live`. The demos the dashboard sends are not counted."
           },
           "projects": {
             "type": "object",
@@ -6804,6 +6827,7 @@
           "plan",
           "period",
           "liveMessages",
+          "testMessages",
           "projects",
           "historyDays",
           "billing"
