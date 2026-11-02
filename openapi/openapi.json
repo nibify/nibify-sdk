@@ -48,7 +48,7 @@
             }
           },
           "422": {
-            "description": "`invalid_request_body`. The email must be one, and the password between 12 and 128 characters.",
+            "description": "`invalid_request_body`. The email must be one, the password between 12 and 128 characters, and `scenario`, when sent, one of the moments of the hero.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1431,7 +1431,7 @@
     },
     "/v1/projects/{projectId}/demos": {
       "post": {
-        "description": "Sends the next of six demos into the `test` half of the Project, in one Thread, as Nibify: an approval with quickActions, a single choice, a multiple choice, a form, a slider, and a Notification. The seventh call starts again from the first. It is sent under the oldest unrevoked `test` key of the Project, without its secret, and it rings even inside your quiet hours and right after another push: you asked for it. Read what becomes of it at `GET /v1/messages/{messageId}`.",
+        "description": "Sends the next of six demos into the `test` half of the Project, in one Thread, as Nibify: an approval with quickActions, a single choice, a multiple choice, a form, a slider, and a Notification. The seventh call starts again from the first. With a `scenario`, the demo is instead the card the landing’s hero shows for that moment; it takes its place in the round, so the call after it sends the demo after that place. It is sent under the oldest unrevoked `test` key of the Project, without its secret, and it rings even inside your quiet hours and right after another push: you asked for it. Read what becomes of it at `GET /v1/messages/{messageId}`, and its answer as the agent would get it at `GET /v1/projects/{projectId}/demos/{messageId}`.",
         "operationId": "DemosController_send",
         "parameters": [
           {
@@ -1444,6 +1444,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendDemoDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "The demo was sent, and which of the six it was.",
@@ -1484,6 +1494,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `scenario` is not one of the moments of the hero, or `fromPhone` is not a boolean.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1492,6 +1512,73 @@
           }
         ],
         "summary": "Send the next demo to your phone",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/demos/{messageId}": {
+      "get": {
+        "description": "Returns a demo Request as `GET /v1/requests/{id}` returns it to the key that signed it, `response.context` included: what `ask()` would hand back to an agent. Only a demo answers here; any other Message of the Project is `request_not_found`, and so is the Notification among the six, which has no answer to read. Poll it, or poll `GET /v1/messages/{messageId}` for the receipts and read this once it is `answered`.",
+        "operationId": "DemosController_read",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "The Project the demo was sent from.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "description": "The `messageId` the demo was sent as.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The demo as it stands. `response` is present exactly when `status` is `answered`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestOutcomeDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`project_not_found` for a Project that is not yours; `request_not_found` for an id that is not one of its demo Requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Read a demo the way its agent would",
         "tags": [
           "dashboard"
         ]
@@ -1849,6 +1936,64 @@
           }
         ],
         "summary": "What was lost, and what is still being tried",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/me/store-notice": {
+      "post": {
+        "description": "Called by `/start` when the person reaches the phone step, and by the Overview while no phone is in. While the app is in review, the person is remembered with the card they picked, and once the app is on the App Store and on Google Play they are emailed «Nibify is in the stores» with a link back to `/start` — once, however many times this is called. Calling again before that email with a `scenario` changes the card; without one, it leaves the card as it is. Once the app is in the stores nothing is remembered: `appsInStores` says so, and the phone step shows the QR.",
+        "operationId": "StoreNoticeController_wait",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoreNoticeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Whether the app is in the stores.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreNoticeDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `scenario` is not one of the moments of the hero.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Wait for the app to be in the stores",
         "tags": [
           "dashboard"
         ]
@@ -3715,6 +3860,68 @@
         ]
       }
     },
+    "/v1/metrics/activity": {
+      "get": {
+        "description": "Fifty-two weeks of Messages counted per day — Requests and notifications together, never a demo you sent yourself — for the activity grid on the metrics page. **A day is a day in your own timezone**, the one your app set, cut by the database; `UTC` until the app has set one. Every day from the Monday the grid opens on to today is in the series, a day with no Message as a row of zeros. **One half at a time**, `live` unless you ask for `test`, and the Messages of a deleted Project still count. `level` places each day on a scale of four steps drawn from the quartiles of your own non-empty days, so a quiet account reads as well as a busy one. **Not limited by the History of your plan**: these are counts, and no Message is shown. Nothing here reads a `surface`, a notification or a Response `context`.",
+        "operationId": "MetricsController_readActivity",
+        "parameters": [
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "live",
+              "type": "string",
+              "enum": [
+                "test",
+                "live"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The days. An account that has sent nothing answers with a year of zeros, every `level` `0`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` for a missing or unusable session token, `session_revoked` for a device that was signed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `environment` must be `test` or `live`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "A year of days, and how many Messages each one had",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/v1/messages": {
       "get": {
         "description": "Every Message sent from the Projects you own, newest first, filterable by Project, half, status, type and Thread. A row is **metadata and the notification title**: `interactionType`, priority, status, the delivery and read receipts, the deadline, and the action a Response carried — never the Surface the agent built, never the `context` an answer came with. Requests whose Content has been deleted are listed with `contentDeleted` and an empty title, because what was asked and how it ended survives what was written (ADR-0016). Paged with an opaque cursor: hand `nextCursor` back unchanged, and `null` means the end.",
@@ -4030,6 +4237,17 @@
             "type": "string",
             "minLength": 12,
             "maxLength": 128
+          },
+          "scenario": {
+            "description": "The moment picked in the landing’s hero, when registration starts from it. The emails that resume an interrupted onboarding show that card.",
+            "type": "string",
+            "enum": [
+              "release",
+              "demo",
+              "deal",
+              "winner",
+              "review"
+            ]
           }
         },
         "required": [
@@ -5231,6 +5449,27 @@
           "warnings"
         ]
       },
+      "SendDemoDto": {
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "description": "One of the moments of the landing’s hero: the demo is the card the hero shows for it, exactly. Without it, the next of the six demos.",
+            "type": "string",
+            "enum": [
+              "release",
+              "demo",
+              "deal",
+              "winner",
+              "review"
+            ]
+          },
+          "fromPhone": {
+            "description": "Whether the person asked for it from a phone’s browser, as the dashboard reads its user agent. Once a demo asked from a phone is answered, an email brings the setup prompt’s page to a computer.",
+            "type": "boolean"
+          }
+        },
+        "default": {}
+      },
       "SentDemoDto_Output": {
         "type": "object",
         "properties": {
@@ -5254,7 +5493,12 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 9007199254740991,
-            "description": "Which demo this was, from 1. The one after the last is the first again."
+            "description": "Which place in the round this took, from 1. The one after the last is the first again; a scenario takes a place like any demo."
+          },
+          "scenario": {
+            "type": "string",
+            "description": "The scenario sent, when one was asked for; `null` for one of the six.",
+            "nullable": true
           },
           "of": {
             "type": "integer",
@@ -5276,6 +5520,7 @@
           "threadId",
           "kind",
           "position",
+          "scenario",
           "of",
           "title",
           "shows"
@@ -5564,6 +5809,35 @@
         "required": [
           "queued",
           "abandoned"
+        ],
+        "additionalProperties": false
+      },
+      "StoreNoticeRequestDto": {
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "description": "The moment of the landing’s hero the person picked: the link in the email brings back its card. Without it, a card already remembered stays; a person not yet remembered gets the card they registered with, or the hero’s first.",
+            "type": "string",
+            "enum": [
+              "release",
+              "demo",
+              "deal",
+              "winner",
+              "review"
+            ]
+          }
+        }
+      },
+      "StoreNoticeDto_Output": {
+        "type": "object",
+        "properties": {
+          "appsInStores": {
+            "type": "boolean",
+            "description": "Whether the app is on the App Store and on Google Play. `false`: the person is remembered, and emailed once it is. `true`: nothing was remembered, and the app can be installed now."
+          }
+        },
+        "required": [
+          "appsInStores"
         ],
         "additionalProperties": false
       },
@@ -7417,6 +7691,86 @@
           "answering",
           "depth",
           "delivery"
+        ],
+        "additionalProperties": false
+      },
+      "ActivityDto_Output": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "enum": [
+              "test",
+              "live"
+            ]
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "weeks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "messages": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "requests": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "answered": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "level": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4
+                }
+              },
+              "required": [
+                "date",
+                "messages",
+                "requests",
+                "answered",
+                "level"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "environment",
+          "timezone",
+          "weeks",
+          "from",
+          "to",
+          "days"
         ],
         "additionalProperties": false
       },
