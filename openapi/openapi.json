@@ -1941,6 +1941,165 @@
         ]
       }
     },
+    "/v1/me/product-emails": {
+      "get": {
+        "description": "The emails about Nibify are the ones that are not about the account: help while setting up, new features and changes to the product. Every account starts with them on. The emails about the account — verifying the address, the password, the plan, a callback that could not be delivered, the deletion — are not switched by this.",
+        "operationId": "ProductEmailsController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The switch as it stands.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductEmailsDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Whether the emails about Nibify arrive",
+        "tags": [
+          "dashboard"
+        ]
+      },
+      "put": {
+        "description": "Off is the same as the link at the foot of every such email; on is the only way back. Sending the same value twice changes nothing.",
+        "operationId": "ProductEmailsController_replace",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductEmailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The switch as it now stands.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductEmailsDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized`, or `session_revoked`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `enabled` is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          }
+        ],
+        "summary": "Turn the emails about Nibify on or off",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/v1/product-emails/opt-out": {
+      "post": {
+        "description": "The token is the one in the link, and it does not expire. Called by the dashboard when the person presses the button on the page the link opens, and when a mail client sends the one-click unsubscribe of RFC 8058. Opting out again changes nothing; the Account page turns the emails back on. Nobody is signed in by it.",
+        "operationId": "ProductEmailsOptOutController_optOut",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductEmailsOptOutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No more emails about Nibify go to this account, or the account no longer exists."
+          },
+          "400": {
+            "description": "`invalid_opt_out_token`. Nibify did not sign this token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_request_body`. `token` is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`. Too many attempts from this address in the last few minutes. Only failed attempts count. Nothing was done: retry after `Retry-After`.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before retrying. Always a whole number, never below 1.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stop the emails about Nibify, from the link in one of them",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/v1/me/store-notice": {
       "post": {
         "description": "Called by `/start` when the person reaches the phone step, and by the Overview while no phone is in. While the app is in review, the person is remembered with the card they picked, and once the app is on the App Store and on Google Play they are emailed «Nibify is in the stores» with a link back to `/start` — once, however many times this is called. Calling again before that email with a `scenario` changes the card; without one, it leaves the card as it is. Once the app is in the stores nothing is remembered: `appsInStores` says so, and the phone step shows the QR.",
@@ -4357,6 +4516,7 @@
                   "malformed_request",
                   "invalid_reset_token",
                   "invalid_verification_token",
+                  "invalid_opt_out_token",
                   "invalid_login_token",
                   "unauthorized",
                   "api_key_revoked",
@@ -4405,6 +4565,7 @@
                   "The request could not be read: the body is not valid JSON, or is cut short.",
                   "The password reset token has already been used, or has expired.",
                   "The email verification link has expired, or was never issued. Ask for another.",
+                  "The link that stops the emails about Nibify was not issued by Nibify. Open it again exactly as it arrived.",
                   "The login token in the QR has already been used, or has expired. Scan the QR the dashboard shows now.",
                   "The credential is missing, malformed or unknown. Send it as `Authorization: Bearer <token>`.",
                   "The API key was revoked. Create a new one in the dashboard.",
@@ -4449,6 +4610,7 @@
                   "Payments could not be reached, or are not open on this deployment. Nothing was changed; retrying may succeed."
                 ],
                 "x-enum-statuses": [
+                  "400",
                   "400",
                   "400",
                   "400",
@@ -5811,6 +5973,44 @@
           "abandoned"
         ],
         "additionalProperties": false
+      },
+      "ProductEmailsDto_Output": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the emails about Nibify reach the person: help while they set up, new features and changes to the product. The emails about the account are not among them, and always arrive."
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "ProductEmailsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the emails about Nibify reach the person: help while they set up, new features and changes to the product. The emails about the account are not among them, and always arrive."
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "ProductEmailsOptOutDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The `token` query parameter of the link at the foot of a product email."
+          }
+        },
+        "required": [
+          "token"
+        ]
       },
       "StoreNoticeRequestDto": {
         "type": "object",
