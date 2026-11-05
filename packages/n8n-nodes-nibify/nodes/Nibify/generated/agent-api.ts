@@ -500,6 +500,7 @@ export interface components {
           | 'malformed_request'
           | 'invalid_reset_token'
           | 'invalid_verification_token'
+          | 'invalid_opt_out_token'
           | 'invalid_login_token'
           | 'unauthorized'
           | 'api_key_revoked'
