@@ -3233,7 +3233,7 @@
     },
     "/v1/me": {
       "get": {
-        "description": "The id and the email of the account this Session belongs to, and whether that email is verified — what the Account page shows, read from the server rather than remembered by the browser. Nothing here is settable yet: there is nowhere an email is changed.",
+        "description": "The id and the email of the account this Session belongs to, and whether that email is verified — what the Account page shows, read from the server rather than remembered by the browser. Then two facts the Overview reads to know whether the person is new: `demoSent`, a demo sent in a Project still theirs, in either half; and `connected`, a Message that is not a demo, sent in any of their Projects, deleted ones included, in either half. Nothing here is settable yet: there is nowhere an email is changed.",
         "operationId": "MeController_me",
         "parameters": [],
         "responses": {
@@ -6292,6 +6292,12 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
             "nullable": true
           },
+          "settledAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
           "answer": {
             "type": "object",
             "properties": {
@@ -6327,6 +6333,7 @@
           "expiresAt",
           "deliveredAt",
           "readAt",
+          "settledAt",
           "answer"
         ],
         "additionalProperties": false
@@ -6537,6 +6544,12 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
             "nullable": true
           },
+          "settledAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "nullable": true
+          },
           "answer": {
             "type": "object",
             "properties": {
@@ -6598,6 +6611,7 @@
           "expiresAt",
           "deliveredAt",
           "readAt",
+          "settledAt",
           "answer",
           "surface"
         ],
@@ -7104,12 +7118,20 @@
           },
           "emailVerified": {
             "type": "boolean"
+          },
+          "demoSent": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
           }
         },
         "required": [
           "id",
           "email",
-          "emailVerified"
+          "emailVerified",
+          "demoSent",
+          "connected"
         ],
         "additionalProperties": false
       },
