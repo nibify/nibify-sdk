@@ -13,7 +13,7 @@ The package READMEs are what npm shows, so they stay short and point at the docu
 pnpm workspaces, Node LTS (24). No Turborepo: there is no build graph to schedule — the packages are independent by construction, and `pnpm -r` is the whole story.
 
 ```
-catalog/                     `@nibify/catalog` — a mirror, see below
+catalog/                     `@nibify/catalog`
 packages/sdk-ts/             `@nibify/sdk`
 packages/n8n-nodes-nibify/   `n8n-nodes-nibify` — unscoped, as n8n requires
 ```
@@ -22,7 +22,7 @@ The n8n node does **not** depend on `@nibify/sdk`. n8n's verification guidelines
 
 **Types are generated, the clients are written by hand.** Each package generates its types from `openapi/openapi.json`, keeping only the operations of the API's `agent` tag: `pnpm --filter @nibify/sdk generate`, which also regenerates the SDK's component constructors from `catalog/catalog.json`, and `pnpm --filter n8n-nodes-nibify generate`. Never edit the generated files. Each package's contract test fails when its types fall behind the spec, or when an `agent` operation is neither called nor listed as not yet covered; the SDK's also fails when the constructors fall behind the catalog.
 
-**The catalog arrives here by mirror.** Its source is `catalog/` in the private repo, and stays there until `@nibify/catalog` is published; until then every change to it on the private `main` opens a pull request here, from the `catalog/sync` branch, with `catalog/` copied byte for byte — the same way `openapi/openapi.json` arrives. Do not edit it here: the next copy overwrites it. Its tests run with the rest under `pnpm -r test`.
+**The catalog is written here.** From v2 its only source is `catalog/`, published as `@nibify/catalog`, and the private repo consumes it from npm. Its tests run with the rest under `pnpm -r test`.
 
 ```sh
 pnpm install

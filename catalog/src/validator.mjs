@@ -13,18 +13,18 @@ const read = (relative) =>
   JSON.parse(readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8'));
 
 const catalog = read('../catalog.json');
-const commonTypes = read('../vendor/a2ui/v0_9_1/common_types.json');
-const serverToClient = read('../vendor/a2ui/v0_9_1/server_to_client.json');
-const clientToServer = read('../vendor/a2ui/v0_9_1/client_to_server.json');
+const commonTypes = read('../vendor/a2ui/v1_0/common_types.json');
+const agentToRenderer = read('../vendor/a2ui/v1_0/agent_to_renderer.json');
+const rendererToAgent = read('../vendor/a2ui/v1_0/renderer_to_agent.json');
 
-/** The A2UI specification version the catalog targets (ADR-0007). */
-export const A2UI_VERSION = 'v0.9';
+/** The A2UI specification version the catalog targets (ADR-0046). */
+export const A2UI_VERSION = '1.0';
 
 /**
  * The URI the A2UI wire schemas reference the catalog under. Registering it
  * anywhere else leaves every component unchecked while still returning `true`.
  */
-export const CATALOG_SCHEMA_URI = 'https://a2ui.org/specification/v0_9/catalog.json';
+export const CATALOG_SCHEMA_URI = 'https://a2ui.org/specification/v1_0/catalog.json';
 
 /** The catalog's own identity, which every `createSurface` message carries. */
 export const catalogId = catalog.catalogId;
@@ -42,11 +42,14 @@ export function createValidator() {
   const ajv = new Ajv2020({ strict: false, allErrors: true });
   addFormats(ajv);
   ajv.addSchema(commonTypes);
-  ajv.addSchema(catalog, CATALOG_SCHEMA_URI);
+  // Under its own `$id` the catalog's relative `common_types.json` refs would
+  // point at nibify.app, which is never fetched. A2UI's reference runner swaps
+  // the `$id` the same way.
+  ajv.addSchema({ ...catalog, $id: CATALOG_SCHEMA_URI });
 
   return {
-    agentToApp: ajv.compile(serverToClient),
-    appToAgent: ajv.compile(clientToServer),
+    agentToApp: ajv.compile(agentToRenderer),
+    appToAgent: ajv.compile(rendererToAgent),
   };
 }
 
@@ -80,7 +83,7 @@ export function validateSurface(validator, surface, surfaceId = 'validation') {
 
   for (const message of toA2uiMessages(surface, surfaceId)) {
     if (!validator.agentToApp(message)) {
-      // The wire schema is a `oneOf` over the four message kinds, so one bad
+      // The wire schema is a `oneOf` over the message kinds, so one bad
       // component fails every branch and Ajv reports all of them: without the
       // message kind in front, the first error names a kind not even involved.
       const kind = messageKind(message);
@@ -139,8 +142,16 @@ export function propertiesOf(componentType) {
   const definition = catalog.components?.[componentType];
   if (!definition) return [];
   return [definition, ...(definition.allOf ?? [])].flatMap((entry) =>
-    Object.keys(entry?.properties ?? {}),
+    Object.keys(commonTypeOf(entry?.$ref)?.properties ?? entry?.properties ?? {}),
   );
+}
+
+/** A trait such as `Checkable`, which a component imports by a relative ref. */
+function commonTypeOf(ref) {
+  const prefix = 'common_types.json#/$defs/';
+  return typeof ref === 'string' && ref.startsWith(prefix)
+    ? commonTypes.$defs[ref.slice(prefix.length)]
+    : undefined;
 }
 
 /** @param {object} message */

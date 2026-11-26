@@ -9,7 +9,7 @@ import prettier from 'prettier';
 
 export const CATALOG_PATH = fileURLToPath(import.meta.resolve('@nibify/catalog'));
 export const COMMON_TYPES_PATH = fileURLToPath(
-  import.meta.resolve('@nibify/catalog/a2ui/v0_9_1/common_types.json'),
+  import.meta.resolve('@nibify/catalog/a2ui/v1_0/common_types.json'),
 );
 export const COMPONENTS_PATH = fileURLToPath(
   new URL('../src/generated/components.ts', import.meta.url),
@@ -38,6 +38,11 @@ const IGNORED = new Set([
   'if',
   'then',
   'else',
+  'propertyNames',
+  'unevaluatedProperties',
+  'returnType',
+  'allowedCallers',
+  'requiresUserActivation',
 ]);
 
 const SHAPING = new Set([
@@ -50,12 +55,13 @@ const SHAPING = new Set([
   'allOf',
   'not',
   'properties',
+  'patternProperties',
   'required',
   'additionalProperties',
   'items',
 ]);
 
-/** Keywords a component may use: it is a closed object, the merge of its `allOf`. */
+/** Keywords a component may use: an object, the merge of its `allOf`. */
 const COMPONENT = new Set([
   'allOf',
   'type',
@@ -80,13 +86,10 @@ class Generator {
   readonly #aliases = new Map<string, { ref: string; type: string | null }>();
   readonly #collapsed: ReadonlyMap<string, string>;
 
-  constructor({ catalog, commonTypes }: CatalogSources, collapsed: ReadonlyMap<string, string>) {
+  constructor(sources: CatalogSources, collapsed: ReadonlyMap<string, string>) {
     this.#collapsed = collapsed;
-    this.#documents.set(String(catalog['$id']), catalog);
-    this.#documents.set(String(commonTypes['$id']), commonTypes);
-    // common_types.json reaches the catalog by a relative ref, which the validator registers the
-    // catalog under too.
-    this.#documents.set(new URL('catalog.json', String(commonTypes['$id'])).href, catalog);
+    this.#documents.set(String(sources.commonTypes['$id']), sources.commonTypes);
+    this.#documents.set(catalogBase(sources), sources.catalog);
   }
 
   get aliases(): [string, string][] {
@@ -142,10 +145,8 @@ class Generator {
         combine(members.map((member, i) => this.typeOf(member, base, `${at}/${keyword}/${i}`))),
       );
     }
-    if (schema['not'] !== undefined) {
-      if (Object.keys(schema['not'] as Schema).length > 0) {
-        throw new Error(`${at}/not: only "not: {}" has a TypeScript rendering`);
-      }
+    // Only `not: {}` narrows a type; any other negation leaves it as wide as before.
+    if (schema['not'] !== undefined && Object.keys(schema['not'] as Schema).length === 0) {
       parts.push(NEVER);
     }
     return intersection(parts);
@@ -243,6 +244,15 @@ class Generator {
       if (type === NEVER) continue;
       lines.push(...jsDoc(docsOf(property)), `${key(name)}${isRequired ? '' : '?'}: ${type};`);
     }
+    if (schema['patternProperties'] !== undefined) {
+      const patterns = Object.entries(schema['patternProperties'] as Record<string, Schema>);
+      const type = union(
+        patterns.map(([pattern, property]) =>
+          this.typeOf(property, base, `${at}/patternProperties/${pattern}`),
+        ),
+      );
+      lines.push(`[key: string]: ${type};`);
+    }
     const additional = schema['additionalProperties'];
     if (additional === undefined && lines.length === 0) return '{ [key: string]: unknown }';
     if (additional !== undefined && additional !== false) {
@@ -275,21 +285,27 @@ function sameEntries(a: ReadonlyMap<string, string>, b: ReadonlyMap<string, stri
   return a.size === b.size && [...a].every(([name, type]) => b.get(name) === type);
 }
 
+/** Where the wire schema finds the catalog, and so where its relative refs resolve (ADR-0046). */
+function catalogBase({ commonTypes }: CatalogSources): string {
+  return new URL('catalog.json', String(commonTypes['$id'])).href;
+}
+
 function render(generator: Generator, sources: CatalogSources): string {
-  const base = String(sources.catalog['$id']);
-  const components = Object.entries(sources.catalog['components'] as Record<string, Schema>);
+  const base = catalogBase(sources);
+  const components = Object.keys(sources.catalog['components'] as Record<string, Schema>);
 
   const blocks: string[] = [];
-  for (const [name, schema] of components) {
+  for (const name of components) {
     const at = `#/components/${name}`;
-    const members = generator.objectMembers(schema, base, at);
+    // The envelope's own composition: `Component` in agent_to_renderer.json.
+    const envelope = {
+      allOf: [{ $ref: 'common_types.json#/$defs/ComponentCommon' }, { $ref: at }],
+    };
+    const members = generator.objectMembers(envelope, base, at);
     const id = members.find((member) => member.name === 'id');
     const discriminator = members.find((member) => member.name === 'component');
     if (!id?.required || !discriminator?.required || discriminator.type !== literal(name)) {
       throw new Error(`${at}: a component needs a required id and "component": "${name}"`);
-    }
-    if (schema['unevaluatedProperties'] !== false) {
-      throw new Error(`${at}: a component without "unevaluatedProperties": false is open`);
     }
     const props = members.filter((member) => member !== id && member !== discriminator);
     const optional = props.every((member) => !member.required);
@@ -313,7 +329,7 @@ function render(generator: Generator, sources: CatalogSources): string {
   blocks.push(
     '/** The action name a component dispatches, kept literal so `ask()` can hold quickActions to it. */\n' +
       'export type Dispatches<Name extends string> = { action: { event: { name: Name } } };',
-    `export type Component = ${union(components.map(([name]) => `${name}Component`))};`,
+    `export type Component = ${union(components.map((name) => `${name}Component`))};`,
     `export type ComponentType = Component['component'];`,
   );
 

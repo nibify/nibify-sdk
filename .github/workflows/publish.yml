@@ -28,8 +28,8 @@
 # would have shipped a release nobody asked for, on a package headed for n8n verification.
 #
 # It is `npm publish` and not `pnpm publish` even though this is a pnpm workspace:
-# trusted publishing is npm's own OIDC exchange, and the two packages have no
-# runtime dependencies for pnpm to rewrite. pnpm still installs and builds first:
+# trusted publishing is npm's own OIDC exchange, and no package has a `workspace:`
+# runtime dependency for pnpm to rewrite. pnpm still installs and builds first:
 # `files` ships `dist/`, which is never committed, and npm packs only what is there.
 #
 # Version bumps are still manual, and stay manual until there is a package worth
@@ -46,6 +46,7 @@ on:
         type: choice
         options:
           - '— pick a package —'
+          - catalog
           - packages/n8n-nodes-nibify
           - packages/sdk-ts
       dry_run:
