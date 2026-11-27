@@ -54,20 +54,20 @@
             "id": "reject",
             "component": "Button",
             "variant": "borderless",
-            "child": "reject-lbl",
+            "child": "reject_lbl",
             "action": { "event": { "name": "reject", "context": {} } }
           },
-          { "id": "reject-lbl", "component": "Text", "text": "Rifiuta" },
+          { "id": "reject_lbl", "component": "Text", "text": "Rifiuta" },
           {
             "id": "approve",
             "component": "Button",
             "variant": "primary",
-            "child": "approve-lbl",
+            "child": "approve_lbl",
             "action": {
               "event": { "name": "approve", "context": { "note": { "@path": "/note" } } }
             }
           },
-          { "id": "approve-lbl", "component": "Text", "text": "Approva" }
+          { "id": "approve_lbl", "component": "Text", "text": "Approva" }
         ]
       }
     }

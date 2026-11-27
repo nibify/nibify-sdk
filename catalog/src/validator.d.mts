@@ -30,6 +30,7 @@ export interface SurfaceIssue {
   kind: string;
   instancePath: string;
   keyword: string;
+  /** Ajv's, except for a component id that is not an identifier: that one names the id. */
   message: string;
   /** Ajv's own `params`, verbatim — `missingProperty`, `allowedValues`, and so on. */
   params: Record<string, unknown>;
