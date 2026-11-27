@@ -10,9 +10,9 @@ That URL is the catalog's identity and its documentation. It is **not** a runtim
 
 The set is a restricted subset of the [A2UI Basic catalog](https://github.com/a2ui-project/a2ui/blob/main/catalogs/basic/v1/catalog.json): the names and the semantics are A2UI's, the selection is ours. The wire format is A2UI itself rather than a shape of our own, so a surface reaches the official Flutter renderer with no translation layer in between — ADR-0001. How the set is versioned is under [Versioning](#versioning) below, and why it is derived rather than declared is ADR-0002 and ADR-0007.
 
-## The v2 set
+## The set
 
-Fourteen components, the same fourteen as v1:
+Fourteen components:
 
 | | |
 |---|---|
@@ -27,9 +27,11 @@ A heading is Markdown: `Text.variant` is `caption` or `body`, and a title is a `
 
 The catalog carries no `theme`, so a surface can carry no branding: the look is the app's design system, identical for every agent. A2UI 1.0 removed the concept, and a `createSurface` with a `theme` fails validation.
 
+The 1.0 Basic catalog also has `TextField.placeholder` and `Slider.steps`. The catalog does not take them yet: each is a prop the app has to draw, and adding one later is additive — a `propsSince`, not a new major.
+
 ### Two functions, for `@checks` on a `TextField`
 
-The catalog defines `required` and `regex`, as the Basic catalog does, and nothing else. They exist because v1 promised client-side validation of a field under the name `validationRegexp`, which A2UI 1.0 replaced with `@checks` (ADR-0046). Only a `TextField` takes `@checks`; on the other inputs, where the Basic catalog also allows them, they are invalid. There is no `formatString`, so text cannot be concatenated or formatted at render time.
+The catalog defines `required` and `regex`, as the Basic catalog does, and nothing else: they are what a field needs to be checked in the app before it is sent (ADR-0046). Only a `TextField` takes `@checks`; on the other inputs, where the Basic catalog also allows them, they are invalid. There is no `formatString`, so text cannot be concatenated or formatted at render time.
 
 The schema holds a function to that place. Where A2UI's shared types take a literal, a binding or a function call — `DynamicString` and its siblings, an action's `context`, the `@accessibility` of the envelope — this catalog takes a literal or a binding only, through its own `$defs` (`StringOrPath`, `NumberOrPath`, `BooleanOrPath`, `StringListOrPath`, `ContextValue`, `Accessibility`). Its `Action` is an `event` and nothing else, so a `Button` cannot run a local `functionCall`. A function call anywhere outside a `TextField`'s `@checks` is invalid.
 
@@ -37,20 +39,18 @@ The schema holds a function to that place. Where A2UI's shared types take a lite
 
 Inside `@checks` the protocol's `@index`, the iteration index of a list template, stays valid as well: A2UI gives it to every catalog, and taking it away would mean naming a protocol function the catalog does not own.
 
-### What changed from v1
+### Written from A2UI 0.9
 
-The v1 catalog targeted A2UI v0.9.1 and stays published, unchanged, at `/v1`. v2 is a new major because 1.0 changes what a surface looks like:
+An agent that learned A2UI 0.9 writes a surface this catalog refuses. In 1.0:
 
-- a binding is `{ "@path": "/note" }`, a function call `{ "@call": … }`, and `accessibility` is `@accessibility`;
-- `Text.variant` loses `h1`…`h5`;
-- `TextField.validationRegexp` gives way to `@checks`, and `TextField.value` becomes required;
+- a binding is `{ "@path": "/note" }`, not `{ "path": "/note" }`; a function call is `{ "@call": … }`, and `accessibility` is `@accessibility`;
+- a heading is Markdown in `text`, not `variant: "h4"`;
+- a field is checked with `@checks`, not `validationRegexp`, and `TextField.value` is required;
 - every message carries `"version": "1.0"`, and the MIME type is `application/a2ui+json`.
-
-The 1.0 Basic catalog also adds `TextField.placeholder` and `Slider.steps`. v2 does not take them yet: each is a prop the app has to draw, and adding one later is additive — a `propsSince`, not a new major.
 
 ### `Button.variant` keeps `default`
 
-`Button.variant` admits `default` beside `primary` and `borderless`. In v1 that was our extension, since the 0.9.1 Basic catalog admitted only the last two; the 1.0 Basic catalog admits `default` too, so in v2 it is plain A2UI. The reason it was worth keeping still holds: the value is redundant — omitting `variant` draws the same button — and an agent that spells out what it means and an agent that leaves the property off are writing the same surface. A catalog that accepts only one of the two is a trap in the shape of a default.
+`Button.variant` admits `default` beside `primary` and `borderless`, as the 1.0 Basic catalog does. It is worth keeping although it is redundant — omitting `variant` draws the same button — and an agent that spells out what it means and an agent that leaves the property off are writing the same surface. A catalog that accepts only one of the two is a trap in the shape of a default.
 
 ### The Dart catalog is the second copy, and it is checked rather than hoped
 
@@ -70,7 +70,7 @@ The catalog targets **A2UI v1.0**, which A2UI calls current and the official Flu
 "metadata": { "extensions": { "app_nibify": { "since": 2 } } }
 ```
 
-Every v2 component says `since: 2`, so the integer does not restart: a device that registered `1` and receives a surface that needs `2` is an old app, and degrades the way ADR-0002 describes. `metadata.extensions` is the slot the 1.0 meta-schema leaves to catalog authors on a component definition; A2UI asks a third-party key to carry its owner's prefix, and `app_nibify` is nibify.app reversed.
+Every component says `since: 2`, the version the catalog starts at: a device that registers a lower `catalogVersion` and receives a surface is an old app, and degrades the way ADR-0002 describes. `metadata.extensions` is the slot the 1.0 meta-schema leaves to catalog authors on a component definition; A2UI asks a third-party key to carry its owner's prefix, and `app_nibify` is nibify.app reversed.
 
 Two optional siblings cover additions inside an existing component — `propsSince` for a prop added later, `enumSince` for an enum value added later. Neither appears yet.
 
