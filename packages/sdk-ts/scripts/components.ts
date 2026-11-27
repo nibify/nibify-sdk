@@ -112,7 +112,7 @@ class Generator {
       schema = (schema as Schema | undefined)?.[segment.replace(/~1/g, '/').replace(/~0/g, '~')];
     }
     if (schema === undefined) throw new Error(`${ref}: nothing at ${pointer} in ${url.href}`);
-    return { schema: schema as Schema, base: url.href, name: pointer.split('/').pop() ?? '' };
+    return { schema: schema as Schema, base: url.href, name: typeName(pointer) };
   }
 
   typeOf(schema: Schema, base: string, at: string): string {
@@ -128,7 +128,7 @@ class Generator {
       parts.push(literal(schema['const']));
     } else if (Array.isArray(schema['enum'])) {
       parts.push(union(schema['enum'].map(literal)));
-    } else if (schema['type'] !== undefined) {
+    } else if (schema['type'] !== undefined && !combinesObjects(schema)) {
       parts.push(this.#typeKeyword(schema, base, at));
     } else if (schema['properties'] !== undefined) {
       parts.push(this.#objectType(schema, base, at));
@@ -293,13 +293,19 @@ function catalogBase({ commonTypes }: CatalogSources): string {
 function render(generator: Generator, sources: CatalogSources): string {
   const base = catalogBase(sources);
   const components = Object.keys(sources.catalog['components'] as Record<string, Schema>);
+  const anyComponent = (sources.catalog['$defs'] as Record<string, Schema>)['anyComponent'] ?? {};
 
   const blocks: string[] = [];
   for (const name of components) {
     const at = `#/components/${name}`;
-    // The envelope's own composition: `Component` in agent_to_renderer.json.
+    // The envelope's own composition: `Component` in agent_to_renderer.json, where the
+    // catalog's `anyComponent` narrows what every component may carry.
     const envelope = {
-      allOf: [{ $ref: 'common_types.json#/$defs/ComponentCommon' }, { $ref: at }],
+      allOf: [
+        { $ref: 'common_types.json#/$defs/ComponentCommon' },
+        { properties: anyComponent['properties'] ?? {} },
+        { $ref: at },
+      ],
     };
     const members = generator.objectMembers(envelope, base, at);
     const id = members.find((member) => member.name === 'id');
@@ -338,6 +344,23 @@ function render(generator: Generator, sources: CatalogSources): string {
     .map(([name, type]) => `export type ${name} = ${type};`);
 
   return BANNER + [...aliases, ...blocks].join('\n\n') + '\n';
+}
+
+/** A catalog function is named like a value (`required`); the type named after it is PascalCase. */
+function typeName(pointer: string): string {
+  const segments = pointer.split('/');
+  const last = segments.at(-1) ?? '';
+  const name = last.charAt(0).toUpperCase() + last.slice(1);
+  return segments.at(-2) === 'functions' && !name.endsWith('Function') ? `${name}Function` : name;
+}
+
+/** An object type with no members of its own says nothing its `allOf` or `oneOf` does not. */
+function combinesObjects(schema: Schema): boolean {
+  return (
+    schema['type'] === 'object' &&
+    ['properties', 'patternProperties', 'additionalProperties'].every((k) => !(k in schema)) &&
+    ['$ref', 'allOf', 'oneOf', 'anyOf'].some((k) => k in schema)
+  );
 }
 
 function literal(value: unknown): string {

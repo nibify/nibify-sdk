@@ -196,7 +196,7 @@ export class Nibify implements INodeType {
           {
             name: 'JSON',
             value: 'json',
-            description: 'A raw A2UI surface that conforms to the Nibify catalog',
+            description: 'A raw A2UI 1.0 surface that conforms to the Nibify catalog v2',
           },
         ],
         default: 'simple',
@@ -275,7 +275,7 @@ export class Nibify implements INodeType {
         default: '{\n  "root": "root",\n  "dataModel": {},\n  "components": []\n}',
         required: true,
         description:
-          'The A2UI surface: "root", "dataModel" and the flat list of "components" of the Nibify catalog. A notification\'s surface dispatches no action.',
+          'The A2UI 1.0 surface: "root", "dataModel" and the flat list of "components" of the Nibify catalog v2. A binding is {"@path": "/note"} and a heading is Markdown. A notification\'s surface dispatches no action.',
         displayOptions: { show: { operation: COMPOSING, composition: ['json'] } },
       },
       {

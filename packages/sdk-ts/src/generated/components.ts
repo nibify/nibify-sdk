@@ -31,8 +31,7 @@ export type DataBinding = {
   '@path': string;
 };
 
-export type FunctionCall = { [key: string]: unknown } & (FunctionCommon &
-  (anyFunction | IndexSystemFunction));
+export type FunctionCall = FunctionCommon & (AnyFunction | IndexSystemFunction);
 
 export type FunctionCommon = {
   /**
@@ -45,9 +44,9 @@ export type FunctionCommon = {
   catalogId?: string;
 };
 
-export type anyFunction = required | regex;
+export type AnyFunction = RequiredFunction | RegexFunction;
 
-export type required = {
+export type RequiredFunction = {
   '@call': 'required';
   args: {
     /**
@@ -57,7 +56,7 @@ export type required = {
   };
 };
 
-export type regex = {
+export type RegexFunction = {
   '@call': 'regex';
   args: {
     value: DynamicString;
@@ -87,7 +86,15 @@ export type Extensions = {
   [key: string]: unknown;
 };
 
+export type Accessibility = {
+  label?: StringOrPath;
+  description?: StringOrPath;
+  hidden?: BooleanOrPath;
+};
+
 export type StringOrPath = string | DataBinding;
+
+export type BooleanOrPath = boolean | DataBinding;
 
 export type Weight = number;
 
@@ -139,8 +146,6 @@ export type CheckRule = {
   message?: string;
 };
 
-export type BooleanOrPath = boolean | DataBinding;
-
 export type StringListOrPath = Array<string> | DataBinding;
 
 export type NumberOrPath = number | DataBinding;
@@ -150,7 +155,7 @@ export type TextProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -180,7 +185,7 @@ export type ImageProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -219,7 +224,7 @@ export type IconProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -309,7 +314,7 @@ export type DividerProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -335,7 +340,7 @@ export type RowProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -370,7 +375,7 @@ export type ColumnProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -405,7 +410,7 @@ export type ListProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -440,7 +445,7 @@ export type CardProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -465,7 +470,7 @@ export type ButtonProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -499,7 +504,7 @@ export type TextFieldProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -537,7 +542,7 @@ export type CheckBoxProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -566,7 +571,7 @@ export type ChoicePickerProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -626,7 +631,7 @@ export type SliderProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */
@@ -664,7 +669,7 @@ export type DateTimeInputProps = {
    * The catalog ID for this component, overriding any surface-level default catalogId.
    */
   '@catalogId'?: string;
-  '@accessibility'?: AccessibilityAttributes;
+  '@accessibility'?: AccessibilityAttributes & Accessibility;
   /**
    * Optional component-level metadata for vendor extensions.
    */

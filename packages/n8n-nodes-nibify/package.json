@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-nibify",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "The Nibify community node for n8n: ask a person on their phone and wait for the answer, or send them a notification.",
   "license": "MIT",
   "author": {
@@ -23,7 +23,9 @@
     "human-in-the-loop"
   ],
   "files": [
-    "README.md"
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/copy-icons.mts",
@@ -47,6 +49,7 @@
   },
   "devDependencies": {
     "@n8n/eslint-plugin-community-nodes": "0.35.0",
+    "@nibify/catalog": "workspace:^2.0.0",
     "@types/node": "^20.19.43",
     "n8n-workflow": "2.42.2",
     "openapi-typescript": "^7.13.0",

@@ -44,6 +44,9 @@ importers:
       '@n8n/eslint-plugin-community-nodes':
         specifier: 0.35.0
         version: 0.35.0(eslint@10.8.1(supports-color@10.2.2))(n8n-workflow@2.42.2(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)(zod@3.25.76))(supports-color@10.2.2)(typescript@6.0.3)
+      '@nibify/catalog':
+        specifier: workspace:^2.0.0
+        version: link:../../catalog
       '@types/node':
         specifier: ^20.19.43
         version: 20.19.43
@@ -63,7 +66,7 @@ importers:
   packages/sdk-ts:
     devDependencies:
       '@nibify/catalog':
-        specifier: workspace:*
+        specifier: workspace:^2.0.0
         version: link:../../catalog
       '@types/node':
         specifier: ^20.19.43

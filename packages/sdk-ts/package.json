@@ -1,6 +1,6 @@
 {
   "name": "@nibify/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TypeScript SDK for Nibify — ask a human a question from your agent and wait for the answer.",
   "license": "MIT",
   "author": "Nibify",
@@ -30,7 +30,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -43,7 +44,7 @@
     "provenance": true
   },
   "devDependencies": {
-    "@nibify/catalog": "workspace:*",
+    "@nibify/catalog": "workspace:^2.0.0",
     "@types/node": "^20.19.43",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.6",

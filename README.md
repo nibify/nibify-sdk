@@ -4,7 +4,7 @@ The open half of [Nibify](https://github.com/nibify): the component catalog, the
 
 The other half — backend, Flutter app, dashboard, marketing site — is closed and not self-hostable. That is a product decision, not an oversight: the backend is the only thing that can ever be charged for, and self-hosting it would cost Docker, configuration, documented migrations and support before there is a single user.
 
-> **Early.** On npm both packages are still the `0.0.2` placeholders. In this repo the SDK covers every operation of the public API — `ask()`, `notify()`, the request handle with `wait()`, `cancel()` and `nudge()`, the request and thread lists, the component constructors and `webhooks.verify()` — and the n8n node has Ask & Wait, Send Notification, Cancel and Nudge. The API they talk to is not deployed yet.
+> **Early.** On npm, `@nibify/sdk` is at 0.1, on the catalog v1, and `n8n-nodes-nibify` is still the `0.0.2` placeholder; here both are on the catalog v2, A2UI 1.0. In this repo the SDK covers every operation of the public API — `ask()`, `notify()`, the request handle with `wait()`, `cancel()` and `nudge()`, the request and thread lists, the component constructors and `webhooks.verify()` — and the n8n node has Ask & Wait, Send Notification, Cancel and Nudge.
 
 The package READMEs are what npm shows, so they stay short and point at the documentation, <https://nibify.app/docs>. This README is for whoever works on the code.
 
