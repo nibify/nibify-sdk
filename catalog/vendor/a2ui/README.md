@@ -15,10 +15,6 @@ From `specification/v1_0/json/`, at upstream commit `36725eee042da90c526f469f942
 
 The other files of that folder — the list wrappers, the capabilities, the renderer data model — describe transports, not surfaces, and are not copied.
 
-## `v0_9_1/` — what the v1 catalog was written against
-
-From `specification/v0_9_1/json/`, as of the repository state on 11 August 2026: `common_types.json`, `server_to_client.json`, `client_to_server.json`. Nothing in this package reads them any more; they stay until the v0.9 surfaces are gone from the consumers.
-
 ## Why they are here
 
 They are vendored so the tests are hermetic: validating a catalog should not depend on the network.

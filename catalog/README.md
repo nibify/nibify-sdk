@@ -31,10 +31,11 @@ The catalog carries no `theme`, so a surface can carry no branding: the look is 
 
 The catalog defines `required` and `regex`, as the Basic catalog does, and nothing else. They exist because v1 promised client-side validation of a field under the name `validationRegexp`, which A2UI 1.0 replaced with `@checks` (ADR-0046). Only a `TextField` takes `@checks`; on the other inputs, where the Basic catalog also allows them, they are invalid. There is no `formatString`, so text cannot be concatenated or formatted at render time.
 
-Two things validate that the catalog does not declare, and they are A2UI's rather than ours:
+The schema holds a function to that place. Where A2UI's shared types take a literal, a binding or a function call — `DynamicString` and its siblings, an action's `context`, the `@accessibility` of the envelope — this catalog takes a literal or a binding only, through its own `$defs` (`StringOrPath`, `NumberOrPath`, `BooleanOrPath`, `StringListOrPath`, `ContextValue`, `Accessibility`). Its `Action` is an `event` and nothing else, so a `Button` cannot run a local `functionCall`. A function call anywhere outside a `TextField`'s `@checks` is invalid.
 
-- **`@index`**, the iteration index inside a list template, is a system function of the protocol and valid in every catalog.
-- **A function's position is not checked.** A2UI defers return types to the renderer, so `required` and `regex` validate wherever the protocol takes a function call — a `Text.text`, a `Button.action.functionCall` — and not only inside `@checks`. `instructions` tells the agent where they belong; the schema cannot.
+`@accessibility` belongs to the envelope, not to a component, so the catalog narrows it in `anyComponent`, which applies to every component, rather than redeclaring an `@` key on each.
+
+Inside `@checks` the protocol's `@index`, the iteration index of a list template, stays valid as well: A2UI gives it to every catalog, and taking it away would mean naming a protocol function the catalog does not own.
 
 ### What changed from v1
 
@@ -66,10 +67,10 @@ The catalog targets **A2UI v1.0**, which A2UI calls current and the official Flu
 `catalogVersion` is a monotonic integer, additive within a major and continuous across majors. Every component carries the version it was introduced in, so both the catalog's own version and a surface's `minCatalogVersion` are **derived, never declared**:
 
 ```json
-"metadata": { "extensions": { "nibify": { "since": 2 } } }
+"metadata": { "extensions": { "app_nibify": { "since": 2 } } }
 ```
 
-Every v2 component says `since: 2`, so the integer does not restart: a device that registered `1` and receives a surface that needs `2` is an old app, and degrades the way ADR-0002 describes. `metadata.extensions` is the slot the 1.0 meta-schema leaves to catalog authors on a component definition.
+Every v2 component says `since: 2`, so the integer does not restart: a device that registered `1` and receives a surface that needs `2` is an old app, and degrades the way ADR-0002 describes. `metadata.extensions` is the slot the 1.0 meta-schema leaves to catalog authors on a component definition; A2UI asks a third-party key to carry its owner's prefix, and `app_nibify` is nibify.app reversed.
 
 Two optional siblings cover additions inside an existing component — `propsSince` for a prop added later, `enumSince` for an enum value added later. Neither appears yet.
 

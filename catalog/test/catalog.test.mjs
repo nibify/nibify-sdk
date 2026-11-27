@@ -329,6 +329,42 @@ describe('a surface outside the v2 set is rejected', () => {
     );
   });
 
+  it('rejects a catalog function outside @checks', () => {
+    const regex = { '@call': 'regex', args: { value: note, pattern: '^[0-9]+$' } };
+    const outside = [
+      [{ id: 'root', component: 'Text', text: regex }],
+      [{ id: 'root', component: 'CheckBox', label: 'Agree', value: regex }],
+      [{ id: 'root', component: 'Text', text: 'Hi', '@accessibility': { label: regex } }],
+      [
+        { id: 'root', component: 'Button', child: 'lbl', action: { functionCall: regex } },
+        { id: 'lbl', component: 'Text', text: 'Go' },
+      ],
+      [
+        {
+          id: 'root',
+          component: 'Button',
+          child: 'lbl',
+          action: { event: { name: 'go', context: { valid: regex } } },
+        },
+        { id: 'lbl', component: 'Text', text: 'Go' },
+      ],
+    ];
+    for (const components of outside) {
+      assert.ok(!validate.agentToApp(componentsOf(components)), JSON.stringify(components[0]));
+    }
+  });
+
+  it('rejects @index outside @checks, where no function call is taken', () => {
+    assert.ok(
+      !validate.agentToApp(
+        componentsOf([
+          { id: 'root', component: 'List', children: { path: '/items', componentId: 'row' } },
+          { id: 'row', component: 'Slider', value: { '@call': '@index' }, max: 10 },
+        ]),
+      ),
+    );
+  });
+
   it('rejects a function call the catalog does not define', () => {
     assert.ok(
       !validate.agentToApp(
@@ -408,12 +444,45 @@ describe('a surface inside the v2 set is accepted', () => {
     assert.equal(deriveMinCatalogVersion(components, catalog), 2);
   });
 
-  it('accepts @index inside a template: the protocol gives it to every catalog', () => {
+  it('accepts required and regex in the @checks of a TextField', () => {
+    assert.ok(
+      validate.agentToApp(
+        componentsOf([
+          {
+            id: 'root',
+            component: 'TextField',
+            label: 'Code',
+            value: note,
+            '@checks': [
+              { condition: { '@call': 'required', args: { value: note } } },
+              { condition: { '@call': 'regex', args: { value: note, pattern: '^[0-9]+$' } } },
+            ],
+          },
+        ]),
+      ),
+      JSON.stringify(validate.agentToApp.errors),
+    );
+  });
+
+  it('accepts @index inside @checks: the protocol gives it to every catalog', () => {
     assert.ok(
       validate.agentToApp(
         componentsOf([
           { id: 'root', component: 'List', children: { path: '/items', componentId: 'row' } },
-          { id: 'row', component: 'Slider', value: { '@call': '@index' }, max: 10 },
+          {
+            id: 'row',
+            component: 'TextField',
+            label: 'Code',
+            value: { '@path': 'code' },
+            '@checks': [
+              {
+                condition: {
+                  '@call': 'regex',
+                  args: { value: { '@call': '@index' }, pattern: '^[0-9]+$' },
+                },
+              },
+            ],
+          },
         ]),
       ),
       JSON.stringify(validate.agentToApp.errors),
@@ -481,13 +550,13 @@ describe('deriving the catalog version', () => {
 
   it('starts every component of the v2 set at 2', () => {
     for (const definition of Object.values(catalog.components)) {
-      assert.equal(definition.metadata.extensions.nibify.since, 2);
+      assert.equal(definition.metadata.extensions.app_nibify.since, 2);
     }
   });
 
   it('takes the highest version among the components used', () => {
     const future = structuredClone(catalog);
-    future.components.Slider.metadata.extensions.nibify.since = 3;
+    future.components.Slider.metadata.extensions.app_nibify.since = 3;
 
     assert.equal(deriveMinCatalogVersion([{ component: 'Text', text: 'Hi' }], future), 2);
     assert.equal(
@@ -505,7 +574,7 @@ describe('deriving the catalog version', () => {
 
   it('counts a prop added after the component only when the prop is used', () => {
     const future = structuredClone(catalog);
-    future.components.Slider.metadata.extensions.nibify.propsSince = { steps: 4 };
+    future.components.Slider.metadata.extensions.app_nibify.propsSince = { steps: 4 };
 
     assert.equal(deriveMinCatalogVersion([{ component: 'Slider', value: 1, max: 10 }], future), 2);
     assert.equal(
@@ -517,7 +586,7 @@ describe('deriving the catalog version', () => {
 
   it('counts an enum value added after the prop only when that value is used', () => {
     const future = structuredClone(catalog);
-    future.components.Text.metadata.extensions.nibify.enumSince = { variant: { overline: 5 } };
+    future.components.Text.metadata.extensions.app_nibify.enumSince = { variant: { overline: 5 } };
 
     assert.equal(
       deriveMinCatalogVersion([{ component: 'Text', text: 'a', variant: 'caption' }], future),
