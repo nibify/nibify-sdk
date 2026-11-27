@@ -1,6 +1,6 @@
 /**
  * Reference implementation of the catalog version derivation — `since`,
- * `propsSince`, `enumSince` under `metadata.extensions.nibify` — and the only
+ * `propsSince`, `enumSince` under `metadata.extensions.app_nibify` — and the only
  * one: the server imports it rather than deriving again. ADR-0002
  * ("Versionamento del catalogo e degradazione non bloccante"), ADR-0007
  * ("Versione A2UI target e versionamento derivato del catalogo"), ADR-0046
@@ -17,7 +17,7 @@ export class UnknownComponentError extends Error {
 }
 
 function nibifyMetadata(definition) {
-  return definition?.metadata?.extensions?.nibify ?? {};
+  return definition?.metadata?.extensions?.app_nibify ?? {};
 }
 
 function versionOfInstance(instance, definition) {

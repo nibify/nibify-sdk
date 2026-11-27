@@ -87,6 +87,8 @@ export type Extensions = {
   [key: string]: unknown;
 };
 
+export type StringOrPath = string | DataBinding;
+
 export type Weight = number;
 
 export type ChildList =
@@ -101,34 +103,30 @@ export type ChildList =
 
 export type Child = ComponentId;
 
-export type Action =
-  | {
-      /**
-       * The event to dispatch to the agent.
-       */
-      event: {
-        /**
-         * The name of the action to be dispatched to the agent.
-         */
-        name: string;
-        /**
-         * An optional human-readable message describing the action performed by the user, resolved by the renderer and included in the outbound action message.
-         */
-        userMessage?: DynamicString;
-        /**
-         * A JSON object containing the key-value pairs for the action context. Values can be literals or paths. Use literal values unless the value must be dynamically bound to the data model. Do NOT use paths for static IDs.
-         */
-        context?: {
-          [key: string]: DynamicValue;
-        };
-      };
-    }
-  | {
-      functionCall: FunctionCall;
+export type Action = {
+  /**
+   * The event to dispatch to the agent.
+   */
+  event: {
+    /**
+     * The name of the action to be dispatched to the agent.
+     */
+    name: string;
+    /**
+     * An optional human-readable message describing the action performed by the user, resolved by the renderer and included in the outbound action message.
+     */
+    userMessage?: StringOrPath;
+    /**
+     * A JSON object containing the key-value pairs for the action context. Values can be literals or paths. Use literal values unless the value must be dynamically bound to the data model. Do NOT use paths for static IDs.
+     */
+    context?: {
+      [key: string]: ContextValue;
     };
+  };
+};
 
-export type DynamicValue =
-  string | number | boolean | unknown[] | { [key: string]: unknown } | DataBinding | FunctionCall;
+export type ContextValue =
+  string | number | boolean | unknown[] | { [key: string]: unknown } | DataBinding;
 
 export type CheckRule = {
   /**
@@ -141,7 +139,11 @@ export type CheckRule = {
   message?: string;
 };
 
-export type DynamicStringList = Array<string> | DataBinding | FunctionCall;
+export type BooleanOrPath = boolean | DataBinding;
+
+export type StringListOrPath = Array<string> | DataBinding;
+
+export type NumberOrPath = number | DataBinding;
 
 export type TextProps = {
   /**
@@ -158,7 +160,7 @@ export type TextProps = {
   /**
    * The text content to display. While simple Markdown formatting is supported (i.e. without HTML, images, or links), utilizing dedicated UI components is generally preferred for a richer and more structured presentation.
    */
-  text: DynamicString;
+  text: StringOrPath;
   /**
    * A hint for the base text style.
    * @default "body"
@@ -188,11 +190,11 @@ export type ImageProps = {
   /**
    * The URL of the image to display.
    */
-  url: DynamicString;
+  url: StringOrPath;
   /**
    * Accessibility text for the image.
    */
-  description?: DynamicString;
+  description?: StringOrPath;
   /**
    * Specifies how the image should be resized to fit its container. This corresponds to the CSS 'object-fit' property.
    * @default "fill"
@@ -290,7 +292,7 @@ export type IconProps = {
         | 'warning'
       )
     | {
-        svgPath: DynamicString;
+        svgPath: StringOrPath;
       }
     | DataBinding;
   weight?: Weight;
@@ -511,11 +513,11 @@ export type TextFieldProps = {
   /**
    * The text label for the input field.
    */
-  label: DynamicString;
+  label: StringOrPath;
   /**
    * The value of the text field. Always a string, under every variant: a 'number' field bound to '/importo' answers '84.50' and not 84.5.
    */
-  value: DynamicString;
+  value: StringOrPath;
   /**
    * The type of input field to display. 'number' chooses the numeric keyboard and the characters the field accepts; it does not change the type of the value, which stays a string.
    * @default "shortText"
@@ -545,11 +547,11 @@ export type CheckBoxProps = {
   /**
    * The text to display next to the checkbox.
    */
-  label: DynamicString;
+  label: StringOrPath;
   /**
    * The current state of the checkbox (true for checked, false for unchecked).
    */
-  value: DynamicBoolean;
+  value: BooleanOrPath;
   weight?: Weight;
 };
 
@@ -574,7 +576,7 @@ export type ChoicePickerProps = {
   /**
    * The label for the group of options.
    */
-  label?: DynamicString;
+  label?: StringOrPath;
   /**
    * A hint for how the choice picker should be displayed and behave.
    * @default "mutuallyExclusive"
@@ -587,7 +589,7 @@ export type ChoicePickerProps = {
     /**
      * The text to display for this option.
      */
-    label: DynamicString;
+    label: StringOrPath;
     /**
      * The stable value associated with this option.
      */
@@ -596,7 +598,7 @@ export type ChoicePickerProps = {
   /**
    * The list of currently selected values. This should be bound to a string array in the data model.
    */
-  value: DynamicStringList;
+  value: StringListOrPath;
   /**
    * How the options are laid out: checkbox stacks them as full-width rows, chips wraps them as compact pills. It does not decide the mark drawn beside an option — variant does.
    * @default "checkbox"
@@ -634,7 +636,7 @@ export type SliderProps = {
   /**
    * The label for the slider.
    */
-  label?: DynamicString;
+  label?: StringOrPath;
   /**
    * The minimum value of the slider.
    * @default 0
@@ -647,7 +649,7 @@ export type SliderProps = {
   /**
    * The current value of the slider.
    */
-  value: DynamicNumber;
+  value: NumberOrPath;
   weight?: Weight;
 };
 
@@ -672,7 +674,7 @@ export type DateTimeInputProps = {
   /**
    * The selected date and/or time value in ISO 8601 format. If not yet set, initialize with an empty string.
    */
-  value: DynamicString;
+  value: StringOrPath;
   /**
    * If true, allows the user to select a date.
    * @default false
@@ -686,15 +688,15 @@ export type DateTimeInputProps = {
   /**
    * The minimum allowed date/time in ISO 8601 format.
    */
-  min?: DynamicString;
+  min?: StringOrPath;
   /**
    * The maximum allowed date/time in ISO 8601 format.
    */
-  max?: DynamicString;
+  max?: StringOrPath;
   /**
    * The text label for the input field.
    */
-  label?: DynamicString;
+  label?: StringOrPath;
   weight?: Weight;
 };
 
