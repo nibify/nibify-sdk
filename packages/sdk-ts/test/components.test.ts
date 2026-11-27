@@ -34,9 +34,13 @@ const built = {
   components: [
     Card('root', { child: 'body' }),
     Column('body', { children: ['title', 'detail', 'note', 'actions'] }),
-    Text('title', { text: 'Invio email di outreach', variant: 'h4' }),
+    Text('title', { text: '#### Invio email di outreach' }),
     Text('detail', { text: "L'agente ha preparato **3 email**. Rivedi e approva." }),
-    TextField('note', { label: 'Nota (opzionale)', value: { path: '/note' }, variant: 'longText' }),
+    TextField('note', {
+      label: 'Nota (opzionale)',
+      value: { '@path': '/note' },
+      variant: 'longText',
+    }),
     Row('actions', { justify: 'spaceBetween', children: ['reject', 'approve'] }),
     Button('reject', {
       variant: 'borderless',
@@ -47,7 +51,7 @@ const built = {
     Button('approve', {
       variant: 'primary',
       child: 'approve-lbl',
-      action: { event: { name: 'approve', context: { note: { path: '/note' } } } },
+      action: { event: { name: 'approve', context: { note: { '@path': '/note' } } } },
     }),
     Text('approve-lbl', { text: 'Approva' }),
   ],
@@ -71,14 +75,8 @@ test('a component added to the catalog adds a constructor', async () => {
   const components = changed.catalog['components'] as Record<string, unknown>;
   components['Badge'] = {
     ...structuredClone(components['Divider'] as object),
-    allOf: [
-      { $ref: 'https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon' },
-      {
-        type: 'object',
-        properties: { component: { const: 'Badge' }, count: { type: 'number' } },
-        required: ['component', 'count'],
-      },
-    ],
+    properties: { component: { const: 'Badge' }, count: { type: 'number' } },
+    required: ['component', 'count'],
   };
   const generated = await generateComponents(changed);
   assert.notEqual(generated, await generateComponents(sources));
@@ -88,8 +86,8 @@ test('a component added to the catalog adds a constructor', async () => {
 
 test('a catalog keyword with no TypeScript rendering stops the generator', async () => {
   const changed = structuredClone(await readCatalog());
-  const text = (changed.catalog['components'] as Record<string, { allOf: object[] }>)['Text'];
-  text?.allOf.push({ patternProperties: { '^x-': {} } });
+  const components = changed.catalog['components'] as Record<string, Record<string, unknown>>;
+  (components['Text'] as Record<string, unknown>)['patternProperties'] = { '^x-': {} };
   await assert.rejects(generateComponents(changed), /patternProperties/);
 });
 

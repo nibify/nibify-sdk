@@ -3,8 +3,8 @@
  * `propsSince`, `enumSince` under `metadata.extensions.nibify` — and the only
  * one: the server imports it rather than deriving again. ADR-0002
  * ("Versionamento del catalogo e degradazione non bloccante"), ADR-0007
- * ("Versione A2UI target e versionamento derivato del catalogo"), README
- * § Versioning.
+ * ("Versione A2UI target e versionamento derivato del catalogo"), ADR-0046
+ * ("Il filo è A2UI 1.0 e il catalogo apre la v2"), README § Versioning.
  */
 
 /** Thrown when a surface uses a component the catalog does not define. */

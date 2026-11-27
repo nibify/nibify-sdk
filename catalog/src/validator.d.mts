@@ -15,9 +15,9 @@ export interface CompiledSchema {
 }
 
 export interface CatalogValidator {
-  /** Agent → app: `createSurface`, `updateDataModel`, `updateComponents`, `deleteSurface`. */
+  /** Agent → app: `agent_to_renderer.json`, the surface messages among them. */
   agentToApp: CompiledSchema;
-  /** App → agent: `action` and `error`. */
+  /** App → agent: `renderer_to_agent.json`, `action` among them. */
   appToAgent: CompiledSchema;
 }
 
@@ -41,7 +41,7 @@ export interface SurfaceValidation {
   issues: SurfaceIssue[];
 }
 
-export declare const A2UI_VERSION: 'v0.9';
+export declare const A2UI_VERSION: '1.0';
 export declare const CATALOG_SCHEMA_URI: string;
 export declare const catalogId: string;
 

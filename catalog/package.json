@@ -1,9 +1,23 @@
 {
   "name": "@nibify/catalog",
-  "version": "0.0.0",
-  "private": true,
+  "version": "2.0.0",
   "description": "The Nibify UI component catalog: an A2UI-conformant JSON Schema of the components an agent may use in a surface.",
   "license": "MIT",
+  "homepage": "https://github.com/nibify/nibify-sdk/tree/main/catalog",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nibify/nibify-sdk.git",
+    "directory": "catalog"
+  },
+  "bugs": {
+    "url": "https://github.com/nibify/nibify-sdk/issues"
+  },
+  "keywords": [
+    "nibify",
+    "a2ui",
+    "catalog",
+    "json-schema"
+  ],
   "type": "module",
   "main": "catalog.json",
   "exports": {
@@ -15,14 +29,18 @@
   },
   "files": [
     "catalog.json",
-    "rules.txt",
     "src",
     "examples",
     "vendor",
+    "README.md",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test \"test/*.test.mjs\""
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "ajv": "^8.17.1",

@@ -1,23 +1,23 @@
 {
   "name": "Approve / reject",
-  "description": "The PRD §6.1 surface as the A2UI v0.9 message sequence a renderer consumes. This is what the app produces from the persisted surface: one createSurface carrying the identity, the data model before the components so bindings resolve on first paint, then the component list. surfaceId is the requestId.",
+  "description": "The PRD §6.1 surface as the A2UI 1.0 message sequence a renderer consumes. This is what the app produces from the persisted surface: one createSurface carrying the identity, the data model before the components so bindings resolve on first paint, then the component list. surfaceId is the requestId.",
   "messages": [
     {
-      "version": "v0.9",
+      "version": "1.0",
       "createSurface": {
         "surfaceId": "msg_01HXYZ",
-        "catalogId": "https://nibify.app/catalogs/nibify/v1/catalog.json"
+        "catalogId": "https://nibify.app/catalogs/nibify/v2/catalog.json"
       }
     },
     {
-      "version": "v0.9",
+      "version": "1.0",
       "updateDataModel": {
         "surfaceId": "msg_01HXYZ",
         "value": { "note": "" }
       }
     },
     {
-      "version": "v0.9",
+      "version": "1.0",
       "updateComponents": {
         "surfaceId": "msg_01HXYZ",
         "components": [
@@ -30,8 +30,7 @@
           {
             "id": "title",
             "component": "Text",
-            "text": "Invio email di outreach",
-            "variant": "h4"
+            "text": "#### Invio email di outreach"
           },
           {
             "id": "detail",
@@ -42,7 +41,7 @@
             "id": "note",
             "component": "TextField",
             "label": "Nota (opzionale)",
-            "value": { "path": "/note" },
+            "value": { "@path": "/note" },
             "variant": "longText"
           },
           {
@@ -65,7 +64,7 @@
             "variant": "primary",
             "child": "approve-lbl",
             "action": {
-              "event": { "name": "approve", "context": { "note": { "path": "/note" } } }
+              "event": { "name": "approve", "context": { "note": { "@path": "/note" } } }
             }
           },
           { "id": "approve-lbl", "component": "Text", "text": "Approva" }

@@ -11,18 +11,83 @@ export type AccessibilityAttributes = {
    * Additional information provided by assistive technologies about an element such as instructions, format requirements, or result of an action. For example, a mute button might have a label of 'Mute' and a description of 'Silences notifications about this conversation'.
    */
   description?: DynamicString;
+  /**
+   * Controls screen reader announcements for dynamic updates (WAI-ARIA aria-live). 'polite' waits for user pause; 'assertive' interrupts immediately for alerts.
+   * @default "off"
+   */
+  live?: 'off' | 'polite' | 'assertive';
+  /**
+   * Hides the element and its children from assistive technologies when true. Default is false.
+   */
+  hidden?: DynamicBoolean;
 };
 
-export type DynamicString = string | DataBinding;
+export type DynamicString = string | DataBinding | FunctionCall;
 
 export type DataBinding = {
   /**
    * A JSON Pointer path to a value in the data model.
    */
-  path: string;
+  '@path': string;
 };
 
-export type DynamicValue = string | number | boolean | unknown[] | DataBinding;
+export type FunctionCall = { [key: string]: unknown } & (FunctionCommon &
+  (anyFunction | IndexSystemFunction));
+
+export type FunctionCommon = {
+  /**
+   * The name of the function to call.
+   */
+  '@call': string;
+  /**
+   * The catalog ID for this function, overriding any surface-level default catalogId.
+   */
+  catalogId?: string;
+};
+
+export type anyFunction = required | regex;
+
+export type required = {
+  '@call': 'required';
+  args: {
+    /**
+     * The value to check.
+     */
+    value: unknown;
+  };
+};
+
+export type regex = {
+  '@call': 'regex';
+  args: {
+    value: DynamicString;
+    /**
+     * The regular expression to search for in the value. Uses the A2UI regex dialect: a portable subset of ECMAScript pattern syntax in Unicode mode with no flags. Matching is case-sensitive, '.' excludes line terminators, and '^' and '$' match only at the ends of the value. Backreferences, lookbehind, named groups and '\p{...}' are not allowed. Patterns longer than 256 code points or that could backtrack catastrophically are rejected.
+     */
+    pattern: string;
+  };
+};
+
+export type IndexSystemFunction = {
+  '@call': '@index';
+  args?: {
+    /**
+     * Optional. An offset to add to the 0-based index (e.g., 1 for 1-based indexing). Defaults to 0.
+     * @default 0
+     */
+    offset?: DynamicNumber;
+  };
+};
+
+export type DynamicNumber = number | DataBinding | FunctionCall;
+
+export type DynamicBoolean = boolean | DataBinding | FunctionCall;
+
+export type Extensions = {
+  [key: string]: unknown;
+};
+
+export type Weight = number;
 
 export type ChildList =
   | Array<ComponentId>
@@ -34,36 +99,62 @@ export type ChildList =
       path: string;
     };
 
-export type Action = {
-  /**
-   * The event to dispatch to the server.
-   */
-  event: {
-    /**
-     * The name of the action to be dispatched to the server.
-     */
-    name: string;
-    /**
-     * A JSON object containing the key-value pairs for the action context. Values can be literals or paths. Use literal values unless the value must be dynamically bound to the data model. Do NOT use paths for static IDs.
-     */
-    context?: {
-      [key: string]: DynamicValue;
+export type Child = ComponentId;
+
+export type Action =
+  | {
+      /**
+       * The event to dispatch to the agent.
+       */
+      event: {
+        /**
+         * The name of the action to be dispatched to the agent.
+         */
+        name: string;
+        /**
+         * An optional human-readable message describing the action performed by the user, resolved by the renderer and included in the outbound action message.
+         */
+        userMessage?: DynamicString;
+        /**
+         * A JSON object containing the key-value pairs for the action context. Values can be literals or paths. Use literal values unless the value must be dynamically bound to the data model. Do NOT use paths for static IDs.
+         */
+        context?: {
+          [key: string]: DynamicValue;
+        };
+      };
+    }
+  | {
+      functionCall: FunctionCall;
     };
-  };
+
+export type DynamicValue =
+  string | number | boolean | unknown[] | { [key: string]: unknown } | DataBinding | FunctionCall;
+
+export type CheckRule = {
+  /**
+   * Path or function call evaluating to a structured validation result object or a boolean.
+   */
+  condition: DataBinding | FunctionCall;
+  /**
+   * Optional fallback error message.
+   */
+  message?: string;
 };
 
-export type DynamicBoolean = boolean | DataBinding;
-
-export type DynamicStringList = Array<string> | DataBinding;
-
-export type DynamicNumber = number | DataBinding;
+export type DynamicStringList = Array<string> | DataBinding | FunctionCall;
 
 export type TextProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The text content to display. While simple Markdown formatting is supported (i.e. without HTML, images, or links), utilizing dedicated UI components is generally preferred for a richer and more structured presentation.
    */
@@ -72,7 +163,8 @@ export type TextProps = {
    * A hint for the base text style.
    * @default "body"
    */
-  variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'caption' | 'body';
+  variant?: 'caption' | 'body';
+  weight?: Weight;
 };
 
 export type TextComponent = { id: ComponentId; component: 'Text' } & TextProps;
@@ -82,11 +174,17 @@ export function Text(id: ComponentId, props: TextProps): TextComponent {
 }
 
 export type ImageProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The URL of the image to display.
    */
@@ -105,6 +203,7 @@ export type ImageProps = {
    * @default "mediumFeature"
    */
   variant?: 'icon' | 'avatar' | 'smallFeature' | 'mediumFeature' | 'largeFeature' | 'header';
+  weight?: Weight;
 };
 
 export type ImageComponent = { id: ComponentId; component: 'Image' } & ImageProps;
@@ -114,11 +213,17 @@ export function Image(id: ComponentId, props: ImageProps): ImageComponent {
 }
 
 export type IconProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The name of the icon to display.
    */
@@ -185,9 +290,10 @@ export type IconProps = {
         | 'warning'
       )
     | {
-        svgPath: string;
+        svgPath: DynamicString;
       }
     | DataBinding;
+  weight?: Weight;
 };
 
 export type IconComponent = { id: ComponentId; component: 'Icon' } & IconProps;
@@ -197,16 +303,23 @@ export function Icon(id: ComponentId, props: IconProps): IconComponent {
 }
 
 export type DividerProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The orientation of the divider.
    * @default "horizontal"
    */
   axis?: 'horizontal' | 'vertical';
+  weight?: Weight;
 };
 
 export type DividerComponent = { id: ComponentId; component: 'Divider' } & DividerProps;
@@ -216,11 +329,17 @@ export function Divider(id: ComponentId, props: DividerProps = {}): DividerCompo
 }
 
 export type RowProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.
    */
@@ -235,6 +354,7 @@ export type RowProps = {
    * @default "stretch"
    */
   align?: 'start' | 'center' | 'end' | 'stretch';
+  weight?: Weight;
 };
 
 export type RowComponent = { id: ComponentId; component: 'Row' } & RowProps;
@@ -244,11 +364,17 @@ export function Row(id: ComponentId, props: RowProps): RowComponent {
 }
 
 export type ColumnProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.
    */
@@ -263,6 +389,7 @@ export type ColumnProps = {
    * @default "stretch"
    */
   align?: 'center' | 'end' | 'start' | 'stretch';
+  weight?: Weight;
 };
 
 export type ColumnComponent = { id: ComponentId; component: 'Column' } & ColumnProps;
@@ -272,11 +399,17 @@ export function Column(id: ComponentId, props: ColumnProps): ColumnComponent {
 }
 
 export type ListProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list.
    */
@@ -291,6 +424,7 @@ export type ListProps = {
    * @default "stretch"
    */
   align?: 'start' | 'center' | 'end' | 'stretch';
+  weight?: Weight;
 };
 
 export type ListComponent = { id: ComponentId; component: 'List' } & ListProps;
@@ -300,15 +434,22 @@ export function List(id: ComponentId, props: ListProps): ListComponent {
 }
 
 export type CardProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The ID of the single child component to be rendered inside the card. To display multiple elements, you MUST wrap them in a layout component (like Column or Row) and pass that container's ID here. Do NOT pass multiple IDs or a non-existent ID.
    */
-  child: ComponentId;
+  child: Child;
+  weight?: Weight;
 };
 
 export type CardComponent = { id: ComponentId; component: 'Card' } & CardProps;
@@ -318,21 +459,28 @@ export function Card(id: ComponentId, props: CardProps): CardComponent {
 }
 
 export type ButtonProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The ID of the child component. Use a 'Text' component for a labeled button. Only use an 'Icon' if the requirements explicitly ask for an icon-only button.
    */
-  child: ComponentId;
+  child: Child;
   /**
    * A hint for the button style. If omitted, a default button style is used. 'primary' indicates this is the main call-to-action button. 'borderless' means the button has no visual border or background, making its child content appear like a clickable link.
    * @default "default"
    */
   variant?: 'default' | 'primary' | 'borderless';
   action: Action;
+  weight?: Weight;
 };
 
 export type ButtonComponent = { id: ComponentId; component: 'Button' } & ButtonProps;
@@ -345,11 +493,21 @@ export function Button<const Name extends string>(
 }
 
 export type TextFieldProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
+  /**
+   * A list of validation check rules to perform on the component.
+   */
+  '@checks'?: Array<CheckRule>;
   /**
    * The text label for the input field.
    */
@@ -357,16 +515,13 @@ export type TextFieldProps = {
   /**
    * The value of the text field. Always a string, under every variant: a 'number' field bound to '/importo' answers '84.50' and not 84.5.
    */
-  value?: DynamicString;
+  value: DynamicString;
   /**
    * The type of input field to display. 'number' chooses the numeric keyboard and the characters the field accepts; it does not change the type of the value, which stays a string.
    * @default "shortText"
    */
   variant?: 'longText' | 'number' | 'shortText' | 'obscured';
-  /**
-   * A regular expression used for client-side validation of the input.
-   */
-  validationRegexp?: string;
+  weight?: Weight;
 };
 
 export type TextFieldComponent = { id: ComponentId; component: 'TextField' } & TextFieldProps;
@@ -376,11 +531,17 @@ export function TextField(id: ComponentId, props: TextFieldProps): TextFieldComp
 }
 
 export type CheckBoxProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The text to display next to the checkbox.
    */
@@ -389,6 +550,7 @@ export type CheckBoxProps = {
    * The current state of the checkbox (true for checked, false for unchecked).
    */
   value: DynamicBoolean;
+  weight?: Weight;
 };
 
 export type CheckBoxComponent = { id: ComponentId; component: 'CheckBox' } & CheckBoxProps;
@@ -398,11 +560,17 @@ export function CheckBox(id: ComponentId, props: CheckBoxProps): CheckBoxCompone
 }
 
 export type ChoicePickerProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The label for the group of options.
    */
@@ -439,6 +607,7 @@ export type ChoicePickerProps = {
    * @default false
    */
   filterable?: boolean;
+  weight?: Weight;
 };
 
 export type ChoicePickerComponent = {
@@ -451,11 +620,17 @@ export function ChoicePicker(id: ComponentId, props: ChoicePickerProps): ChoiceP
 }
 
 export type SliderProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The label for the slider.
    */
@@ -473,6 +648,7 @@ export type SliderProps = {
    * The current value of the slider.
    */
   value: DynamicNumber;
+  weight?: Weight;
 };
 
 export type SliderComponent = { id: ComponentId; component: 'Slider' } & SliderProps;
@@ -482,11 +658,17 @@ export function Slider(id: ComponentId, props: SliderProps): SliderComponent {
 }
 
 export type DateTimeInputProps = {
-  accessibility?: AccessibilityAttributes;
   /**
-   * The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.
+   * The catalog ID for this component, overriding any surface-level default catalogId.
    */
-  weight?: number;
+  '@catalogId'?: string;
+  '@accessibility'?: AccessibilityAttributes;
+  /**
+   * Optional component-level metadata for vendor extensions.
+   */
+  '@metadata'?: {
+    extensions?: Extensions;
+  };
   /**
    * The selected date and/or time value in ISO 8601 format. If not yet set, initialize with an empty string.
    */
@@ -513,6 +695,7 @@ export type DateTimeInputProps = {
    * The text label for the input field.
    */
   label?: DynamicString;
+  weight?: Weight;
 };
 
 export type DateTimeInputComponent = {
