@@ -295,6 +295,31 @@ describe('a surface outside the v2 set is rejected', () => {
     assert.ok(!validate.agentToApp(componentsOf([{ component: 'Text', text: 'Hi' }])));
   });
 
+  it('rejects an id that is not a UAX #31 identifier, as the renderer does', () => {
+    for (const id of ['reject-lbl', '1st', 'a b', '', '@root']) {
+      assert.ok(
+        !validate.agentToApp(componentsOf([{ id, component: 'Text', text: 'Hi' }])),
+        JSON.stringify(id),
+      );
+    }
+  });
+
+  it('checks ids with the pattern A2UI 1.0 itself uses for identifiers', () => {
+    assert.deepEqual(
+      [catalog.$defs.anyComponent.properties.id.pattern],
+      Object.keys(commonTypes.$defs.Extensions.patternProperties),
+    );
+  });
+
+  it('rejects a @metadata extension key that is not a UAX #31 identifier', () => {
+    const tagged = (key) =>
+      componentsOf([
+        { id: 'root', component: 'Text', text: 'Hi', '@metadata': { extensions: { [key]: 1 } } },
+      ]);
+    assert.ok(validate.agentToApp(tagged('app_example')));
+    assert.ok(!validate.agentToApp(tagged('app-example')));
+  });
+
   it('rejects @checks anywhere but a TextField', () => {
     assert.ok(
       !validate.agentToApp(
@@ -389,8 +414,8 @@ describe('a surface inside the v2 set is accepted', () => {
       { id: 'icon', component: 'Icon', name: 'notifications' },
       { id: 'image', component: 'Image', url: 'https://example.com/a.png', variant: 'avatar' },
       { id: 'title', component: 'Text', text: '### Title', weight: 1 },
-      { id: 'list', component: 'List', children: { path: '/items', componentId: 'row-tpl' } },
-      { id: 'row-tpl', component: 'Text', text: { '@path': 'label' }, variant: 'caption' },
+      { id: 'list', component: 'List', children: { path: '/items', componentId: 'row_tpl' } },
+      { id: 'row_tpl', component: 'Text', text: { '@path': 'label' }, variant: 'caption' },
       { id: 'divider', component: 'Divider', axis: 'horizontal' },
       {
         id: 'inputs',
@@ -431,10 +456,10 @@ describe('a surface inside the v2 set is accepted', () => {
         id: 'submit',
         component: 'Button',
         variant: 'default',
-        child: 'submit-lbl',
+        child: 'submit_lbl',
         action: { event: { name: 'submit', context: { name: { '@path': '/name' } } } },
       },
-      { id: 'submit-lbl', component: 'Text', text: 'Send' },
+      { id: 'submit_lbl', component: 'Text', text: 'Send' },
     ];
 
     assert.ok(
@@ -442,6 +467,15 @@ describe('a surface inside the v2 set is accepted', () => {
       JSON.stringify(validate.agentToApp.errors),
     );
     assert.equal(deriveMinCatalogVersion(components, catalog), 2);
+  });
+
+  it('accepts any UAX #31 identifier as an id, a leading _ and non-ASCII letters included', () => {
+    for (const id of ['root', 'button_0_label', '_draft', 'año', 'Ζ2']) {
+      assert.ok(
+        validate.agentToApp(componentsOf([{ id, component: 'Text', text: 'Hi' }])),
+        `${id}: ${JSON.stringify(validate.agentToApp.errors)}`,
+      );
+    }
   });
 
   it('accepts required and regex in the @checks of a TextField', () => {
@@ -531,6 +565,38 @@ describe('validating a whole surface', () => {
     assert.ok(
       result.errors.every((error) => typeof error === 'string' && error.length > 0),
       JSON.stringify(result.errors),
+    );
+  });
+
+  it('names the component whose id is not an identifier, and says what an id must be', () => {
+    const hyphenated = {
+      ...surfaceExample,
+      components: surfaceExample.components.map((component) =>
+        component.id === 'reject_lbl' ? { ...component, id: 'reject-lbl' } : component,
+      ),
+    };
+
+    const result = validateSurface(validate, hyphenated, SURFACE_ID);
+    const detail =
+      "Component id 'reject-lbl' must be a valid UAX #31 identifier, as A2UI 1.0 requires: letters, digits and '_', not starting with a digit.";
+    const index = hyphenated.components.findIndex((component) => component.id === 'reject-lbl');
+
+    assert.equal(result.valid, false);
+    assert.ok(
+      result.errors.includes(`updateComponents/updateComponents/components/${index}/id: ${detail}`),
+      JSON.stringify(result.errors),
+    );
+    assert.deepEqual(
+      result.issues.filter((issue) => issue.instancePath.endsWith('/id')),
+      [
+        {
+          kind: 'updateComponents',
+          instancePath: `/updateComponents/components/${index}/id`,
+          keyword: 'pattern',
+          message: detail,
+          params: { pattern: catalog.$defs.anyComponent.properties.id.pattern },
+        },
+      ],
     );
   });
 

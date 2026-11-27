@@ -57,10 +57,10 @@ const CHOICE = {
       id: 'file',
       component: 'Button',
       variant: 'primary',
-      child: 'file-label',
+      child: 'file_label',
       action: { event: { name: 'file', context: { category: { '@path': '/category' } } } },
     },
-    { id: 'file-label', component: 'Text', text: 'File it' },
+    { id: 'file_label', component: 'Text', text: 'File it' },
   ],
 };
 
@@ -123,7 +123,7 @@ const FORM = {
       id: 'file',
       component: 'Button',
       variant: 'primary',
-      child: 'file-label',
+      child: 'file_label',
       action: {
         event: {
           name: 'file',
@@ -136,7 +136,7 @@ const FORM = {
         },
       },
     },
-    { id: 'file-label', component: 'Text', text: 'File it' },
+    { id: 'file_label', component: 'Text', text: 'File it' },
   ],
 };
 

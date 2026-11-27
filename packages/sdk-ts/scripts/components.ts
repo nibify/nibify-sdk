@@ -35,6 +35,7 @@ const IGNORED = new Set([
   'metadata',
   'discriminator',
   'format',
+  'pattern',
   'if',
   'then',
   'else',

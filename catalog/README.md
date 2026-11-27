@@ -35,6 +35,10 @@ The schema holds a function to that place. Where A2UI's shared types take a lite
 
 `@accessibility` belongs to the envelope, not to a component, so the catalog narrows it in `anyComponent`, which applies to every component, rather than redeclaring an `@` key on each.
 
+### A component id is an identifier
+
+An `id` is a UAX #31 identifier — letters, digits and `_`, not starting with a digit — because A2UI 1.0 says so and the renderer refuses the whole surface over a single `reject-label`. `anyComponent` holds `id` to the pattern A2UI writes for identifiers in `common_types.json`, `^[\p{XID_Start}_][\p{XID_Continue}]*$`, so `reject_label` and `año` pass and `reject-label` and `1st` do not. The other identifiers the renderer checks were already held by the schema: the component type is one of fourteen names, the functions are `required` and `regex` with their own arguments, and the keys of `@metadata.extensions` follow A2UI's own pattern. A reference to a child is not checked against the pattern, as the renderer does not check it either; a reference to an id that cannot exist points at nothing.
+
 Inside `@checks` the protocol's `@index`, the iteration index of a list template, stays valid as well: A2UI gives it to every catalog, and taking it away would mean naming a protocol function the catalog does not own.
 
 ### What changed from v1
@@ -92,7 +96,7 @@ Underneath, Ajv runs with `strict: false`, draft 2020-12 and `ajv-formats` — t
 Two consequences worth knowing before you rely on the result:
 
 - **The data model is not checked.** A2UI leaves `updateDataModel.value` untyped, because the message may target a path inside the model where a scalar is legal. A valid surface can still carry a nonsense data model; that check belongs to whatever validates the envelope.
-- **The errors are raw Ajv.** The wire schema is a `oneOf` over the message kinds, so one bad component fails every branch and Ajv reports all of them. Each error names the message it came from, which is enough to read the list — not enough to show a developer.
+- **The errors are raw Ajv.** The wire schema is a `oneOf` over the message kinds, so one bad component fails every branch and Ajv reports all of them. Each error names the message it came from, which is enough to read the list — not enough to show a developer. The one message rewritten is a component `id` that is not an identifier, because Ajv would print the Unicode regex instead of the id.
 
 `ajv` and `ajv-formats` are optional peer dependencies: importing the catalog itself pulls in nothing, and only `@nibify/catalog/validator` needs them.
 

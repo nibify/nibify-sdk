@@ -42,13 +42,13 @@ export function composeSimple(card: SimpleCard): Composed {
 
   const buttons = card.buttons.flatMap(({ label, action, style }, index) => [
     {
-      id: `button-${index}`,
+      id: `button_${index}`,
       component: 'Button',
       variant: style,
-      child: `button-${index}-label`,
+      child: `button_${index}_label`,
       action: { event: { name: action, context: {} } },
     },
-    { id: `button-${index}-label`, component: 'Text', text: label },
+    { id: `button_${index}_label`, component: 'Text', text: label },
   ]);
 
   return {
@@ -57,7 +57,7 @@ export function composeSimple(card: SimpleCard): Composed {
         id: 'actions',
         component: 'Row',
         justify: 'end',
-        children: card.buttons.map((_, index) => `button-${index}`),
+        children: card.buttons.map((_, index) => `button_${index}`),
       },
       ...buttons,
     ]),

@@ -83,7 +83,7 @@ test('an event that does not answer carries no response', () => {
   const answer = {
     responseId: 'res_01',
     actionName: 'approve',
-    sourceComponentId: 'button-1',
+    sourceComponentId: 'button_1',
     context: null,
     clientTimestamp: '2026-10-09T12:00:00.000Z',
     answeredAt: '2026-10-09T12:00:00.000Z',

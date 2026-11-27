@@ -88,15 +88,18 @@ export function validateSurface(validator, surface, surfaceId = 'validation') {
       // message kind in front, the first error names a kind not even involved.
       const kind = messageKind(message);
       const raw = validator.agentToApp.errors ?? [];
-      errors.push(...raw.map((error) => describeError(kind, error)));
+      errors.push(
+        ...raw.map((error) => describeError(kind, error, messageOf(message, kind, error))),
+      );
       // Ajv's own fields, not a shape of this package's invention: an
       // interpretation here is one more thing that can disagree with the schema.
+      // The one exception is the wording of `messageOf`.
       issues.push(
         ...raw.map((error) => ({
           kind,
           instancePath: error.instancePath ?? '',
           keyword: error.keyword ?? '',
-          message: error.message ?? 'is invalid',
+          message: messageOf(message, kind, error),
           params: /** @type {Record<string, unknown>} */ (error.params ?? {}),
         })),
       );
@@ -159,10 +162,30 @@ function messageKind(message) {
   return Object.keys(message).find((key) => key !== 'version') ?? 'message';
 }
 
+const COMPONENT_ID = /^\/\w+\/components\/(\d+)\/id$/;
+
+/**
+ * Ajv's message, except where Ajv would print a Unicode regex: a component id
+ * that is not an identifier, which the renderer refuses for the whole surface.
+ *
+ * @param {Record<string, any>} message
+ * @param {string} kind
+ * @param {{ instancePath?: string, keyword?: string, message?: string }} error
+ */
+function messageOf(message, kind, error) {
+  const match = error.keyword === 'pattern' ? COMPONENT_ID.exec(error.instancePath ?? '') : null;
+  if (match) {
+    const id = message[kind]?.components?.[Number(match[1])]?.id;
+    return `Component id '${id}' must be a valid UAX #31 identifier, as A2UI 1.0 requires: letters, digits and '_', not starting with a digit.`;
+  }
+  return error.message ?? 'is invalid';
+}
+
 /**
  * @param {string} kind
- * @param {{ instancePath?: string, message?: string }} error
+ * @param {{ instancePath?: string }} error
+ * @param {string} text
  */
-function describeError(kind, error) {
-  return `${kind}${error.instancePath || ''}: ${error.message ?? 'is invalid'}`;
+function describeError(kind, error, text) {
+  return `${kind}${error.instancePath || ''}: ${text}`;
 }

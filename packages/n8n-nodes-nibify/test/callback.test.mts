@@ -29,7 +29,7 @@ const EVENTS: { [Type in CallbackEvent['type']]: Extract<CallbackEvent, { type: 
       response: {
         responseId: 'res_01',
         actionName: 'approve',
-        sourceComponentId: 'button-1',
+        sourceComponentId: 'button_1',
         context: { note: 'only lead A' },
         clientTimestamp: NOW.toISOString(),
         answeredAt: NOW.toISOString(),
@@ -107,7 +107,7 @@ describe('outcomeOf', () => {
           status: 'answered',
           action: 'approve',
           context: { note: 'only lead A' },
-          sourceComponentId: 'button-1',
+          sourceComponentId: 'button_1',
           responseId: 'res_01',
           answeredAt: NOW.toISOString(),
           environment: 'test',

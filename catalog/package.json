@@ -1,6 +1,6 @@
 {
   "name": "@nibify/catalog",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "The Nibify UI component catalog: an A2UI-conformant JSON Schema of the components an agent may use in a surface.",
   "license": "MIT",
   "homepage": "https://github.com/nibify/nibify-sdk/tree/main/catalog",
