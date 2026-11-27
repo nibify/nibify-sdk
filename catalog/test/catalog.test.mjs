@@ -106,7 +106,7 @@ describe('catalog identity', () => {
     assert.deepEqual(offending, []);
   });
 
-  it('defines exactly the v1 set — 14 components, and no Form', () => {
+  it('defines exactly its 14 components, and no Form', () => {
     assert.deepEqual(Object.keys(catalog.components).sort(), [
       'Button',
       'Card',
