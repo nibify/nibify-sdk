@@ -122,6 +122,8 @@ Every failure is a `NibifyError` with `status` (`null` when no HTTP answer came 
 
 `Text`, `Image`, `Icon`, `Divider`, `Row`, `Column`, `List`, `Card`, `Button`, `TextField`, `CheckBox`, `ChoicePicker`, `Slider` and `DateTimeInput` build A2UI components typed from the catalog. Each takes an `id` and its props, and returns the plain JSON you could have written by hand. `Button` keeps its action name as a literal type, and that type is what holds `ask()`'s quickActions to the surface.
 
+The catalog is Nibify's v2, which is A2UI 1.0. Coming from 0.1: `{ path: '/note' }` is now `{ '@path': '/note' }`, `variant: 'h4'` is now `text: '#### Title'`, and `validationRegexp` is now `@checks`. See the [CHANGELOG](CHANGELOG.md).
+
 ```ts
 import { Button, Column, Text } from '@nibify/sdk';
 
@@ -131,7 +133,7 @@ const result = await nibify.ask(
     dataModel: {},
     components: [
       Column('root', { children: ['title', 'ship'] }),
-      Text('title', { text: 'Ship v2.4.1 to production?' }),
+      Text('title', { text: '#### Ship v2.4.1 to production?' }),
       Button('ship', { child: 'ship-label', action: { event: { name: 'ship' } } }),
       Text('ship-label', { text: 'Ship it' }),
     ],
@@ -145,6 +147,25 @@ const result = await nibify.ask(
     },
   },
 );
+```
+
+A field bound to the data model comes back in the action's `context`, and `@checks` holds it in the app until it is right. `required` and `regex` are the only functions, and only a `TextField` takes them:
+
+```ts
+TextField('amount', {
+  label: 'Amount',
+  variant: 'number',
+  value: { '@path': '/amount' },
+  '@checks': [
+    {
+      condition: {
+        '@call': 'regex',
+        args: { value: { '@path': '/amount' }, pattern: '^[0-9]+(\\.[0-9]{1,2})?$' },
+      },
+      message: 'An amount, like 1240 or 84.50.',
+    },
+  ],
+});
 ```
 
 The full guide, at [nibify.app/docs](https://nibify.app/docs/sdk), is not online yet. Code and catalog: <https://github.com/nibify/nibify-sdk> · MIT License.

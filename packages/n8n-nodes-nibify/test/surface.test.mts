@@ -82,7 +82,8 @@ describe('composeNotice', () => {
       ],
     );
     assert.deepEqual(components[1]?.['children'], ['title', 'text']);
-    assert.equal(components[2]?.['text'], 'Deployed');
+    assert.equal(components[2]?.['text'], '#### Deployed', 'a heading is Markdown');
+    assert.equal(components[2]?.['variant'], undefined);
     assert.ok(!JSON.stringify(surface).includes('"action"'), 'no action anywhere');
   });
 

@@ -85,7 +85,7 @@ function cardOf(title: string, text: string, actions: Surface['components']): Su
     components: [
       { id: 'root', component: 'Card', child: 'body' },
       { id: 'body', component: 'Column', children },
-      { id: 'title', component: 'Text', text: title, variant: 'h4' },
+      { id: 'title', component: 'Text', text: `#### ${title}` },
       ...(text ? [{ id: 'text', component: 'Text', text }] : []),
       ...actions,
     ],

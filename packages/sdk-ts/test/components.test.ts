@@ -1,4 +1,4 @@
-/** The component constructors against `catalog/catalog.json` and the PRD §6.1 surface. */
+/** The component constructors against `catalog/catalog.json` and the three surfaces of PRD §3. */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,10 @@ import { COMPONENTS_PATH, generateComponents, readCatalog } from '../scripts/com
 import {
   Button,
   Card,
+  CheckBox,
+  ChoicePicker,
   Column,
+  DateTimeInput,
   Divider,
   Nibify,
   Row,
@@ -57,6 +60,87 @@ const built = {
   ],
 } satisfies Surface;
 
+/** PRD §3, US3. */
+const choice = {
+  root: 'root',
+  dataModel: { category: ['consulting'] },
+  components: [
+    Card('root', { child: 'body' }),
+    Column('body', { children: ['title', 'category', 'file'] }),
+    Text('title', { text: '#### Kiwi Studio: $1,240' }),
+    ChoicePicker('category', {
+      label: 'Categoria',
+      variant: 'mutuallyExclusive',
+      options: [
+        { label: 'Software', value: 'software' },
+        { label: 'Consulenza', value: 'consulting' },
+      ],
+      value: { '@path': '/category' },
+    }),
+    Button('file', {
+      variant: 'primary',
+      child: 'file-lbl',
+      action: { event: { name: 'file', context: { category: { '@path': '/category' } } } },
+    }),
+    Text('file-lbl', { text: 'Archivia' }),
+  ],
+} satisfies Surface;
+
+/** PRD §3, US4, and §6.2. */
+const form = {
+  root: 'root',
+  dataModel: { amount: '1240', due: '2026-10-30', category: ['consulting'], recurring: false },
+  components: [
+    Card('root', { child: 'body' }),
+    Column('body', { children: ['title', 'amount', 'due', 'category', 'recurring', 'file'] }),
+    Text('title', { text: '#### Fattura Kiwi Studio' }),
+    TextField('amount', {
+      label: 'Importo',
+      variant: 'number',
+      value: { '@path': '/amount' },
+      '@checks': [
+        {
+          condition: { '@call': 'required', args: { value: { '@path': '/amount' } } },
+          message: "Serve l'importo.",
+        },
+        {
+          condition: {
+            '@call': 'regex',
+            args: { value: { '@path': '/amount' }, pattern: '^[0-9]+(\\.[0-9]{1,2})?$' },
+          },
+          message: 'Un importo, come 1240 o 84.50.',
+        },
+      ],
+    }),
+    DateTimeInput('due', { label: 'Scadenza', enableDate: true, value: { '@path': '/due' } }),
+    ChoicePicker('category', {
+      label: 'Categoria',
+      options: [
+        { label: 'Software', value: 'software' },
+        { label: 'Consulenza', value: 'consulting' },
+      ],
+      value: { '@path': '/category' },
+    }),
+    CheckBox('recurring', { label: 'Ricorrente', value: { '@path': '/recurring' } }),
+    Button('file', {
+      variant: 'primary',
+      child: 'file-lbl',
+      action: {
+        event: {
+          name: 'file',
+          context: {
+            amount: { '@path': '/amount' },
+            due: { '@path': '/due' },
+            category: { '@path': '/category' },
+            recurring: { '@path': '/recurring' },
+          },
+        },
+      },
+    }),
+    Text('file-lbl', { text: 'Archivia' }),
+  ],
+} satisfies Surface;
+
 test('the committed constructors are what the catalog generates', async () => {
   const committed = (await readFile(COMPONENTS_PATH, 'utf8')).split('\n');
   const generated = (await generateComponents(await readCatalog())).split('\n');
@@ -95,10 +179,23 @@ test('PRD §6.1 written with the constructors is the JSON written by hand', asyn
   assert.equal(JSON.stringify(built), JSON.stringify(await handWritten()));
 });
 
-test('the catalog validator accepts the surface the constructors build', () => {
-  const result = validateSurface(createValidator(), built);
-  assert.deepEqual(result.errors, []);
-  assert.equal(result.valid, true);
+test('every type the generator exports has a PascalCase name', async () => {
+  const generated = await generateComponents(await readCatalog());
+  const names = [...generated.matchAll(/^export type (\w+)/gm)].map(([, name]) => name);
+  assert.ok(names.length > 0);
+  assert.deepEqual(
+    names.filter((name) => !/^[A-Z]/.test(name ?? '')),
+    [],
+  );
+});
+
+test('the catalog validator accepts the approval, the choice and the form', () => {
+  const validator = createValidator();
+  for (const [name, surface] of Object.entries({ approval: built, choice, form })) {
+    const result = validateSurface(validator, surface);
+    assert.deepEqual(result.errors, [], name);
+    assert.equal(result.valid, true, name);
+  }
 });
 
 test('a constructor returns a plain object, with nothing of its own', () => {
@@ -127,8 +224,27 @@ test('ask() sends the same body for the surface built and the surface written', 
 test('the types refuse what the catalog refuses', () => {
   // @ts-expect-error a Button dispatches an action
   Button('go', { child: 'go-lbl' });
-  // @ts-expect-error h6 is not a variant of Text
-  Text('t', { text: 'x', variant: 'h6' });
   // @ts-expect-error a Card has one child, not children
   Card('c', { children: ['a'] });
+  // @ts-expect-error a heading is Markdown: h4 is not a variant of Text
+  Text('t', { text: 'x', variant: 'h4' });
+  // @ts-expect-error a binding is { '@path' }, not the { path } of A2UI 0.9
+  TextField('n', { label: 'Nota', value: { path: '/note' } });
+  // @ts-expect-error validationRegexp gave way to @checks
+  TextField('n', { label: 'Nota', value: '', validationRegexp: '^.+$' });
+  // @ts-expect-error only a TextField takes @checks
+  CheckBox('c', { label: 'Ok', value: false, '@checks': [] });
+  TextField('n', {
+    label: 'Nota',
+    value: '',
+    // @ts-expect-error required and regex are the only functions
+    '@checks': [{ condition: { '@call': 'formatString', args: { value: 'x' } } }],
+  });
+  // @ts-expect-error a function call belongs in @checks, not in a value
+  Text('t', { text: { '@call': 'required', args: { value: 'x' } } });
+  Text('t', {
+    text: 'x',
+    // @ts-expect-error nor in @accessibility, which the catalog narrows
+    '@accessibility': { label: { '@call': 'required', args: { value: 1 } } },
+  });
 });

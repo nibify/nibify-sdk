@@ -1,7 +1,5 @@
 # n8n-nodes-nibify
 
-**Not published yet.** npm still holds the `0.0.2` placeholder; the node below lives in this repository and reaches npm once the Nibify API is deployed.
-
 The Nibify community node for n8n: ask a person on their phone and wait for the answer, or send them a notification. Four operations: **Ask & Wait**, **Send Notification**, **Cancel** and **Nudge**.
 
 ## Set up
@@ -22,6 +20,8 @@ Add a Nibify node with **Ask & Wait** and **Composition: Simple**:
 | Buttons | **File it** → `file` · **Fix it** → `fix` |
 
 The workflow pauses without holding a worker. When the person presses **File it**, it resumes from the **Answered** output with `action: "file"`; an expired, dismissed or cancelled request resumes from **Not Answered** with its `status`.
+
+**Composition: JSON** takes a surface of the Nibify catalog v2, which is A2UI 1.0: a binding is `{"@path": "/note"}` where 0.9 wrote `{"path": "/note"}`, a title is `"text": "#### Title"` where it was `"variant": "h4"`, and a field is checked with `"@checks"` where it had `"validationRegexp"`. See the [CHANGELOG](CHANGELOG.md).
 
 - [Quickstart](https://nibify.app/docs/quickstart): the first request, in a few minutes.
 - [n8n guide](https://nibify.app/docs/n8n-ask-and-wait): JSON surfaces, both outputs, expiry, Cancel and Nudge.
