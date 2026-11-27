@@ -47,16 +47,16 @@ const built = {
     Row('actions', { justify: 'spaceBetween', children: ['reject', 'approve'] }),
     Button('reject', {
       variant: 'borderless',
-      child: 'reject-lbl',
+      child: 'reject_lbl',
       action: { event: { name: 'reject', context: {} } },
     }),
-    Text('reject-lbl', { text: 'Rifiuta' }),
+    Text('reject_lbl', { text: 'Rifiuta' }),
     Button('approve', {
       variant: 'primary',
-      child: 'approve-lbl',
+      child: 'approve_lbl',
       action: { event: { name: 'approve', context: { note: { '@path': '/note' } } } },
     }),
-    Text('approve-lbl', { text: 'Approva' }),
+    Text('approve_lbl', { text: 'Approva' }),
   ],
 } satisfies Surface;
 
@@ -79,10 +79,10 @@ const choice = {
     }),
     Button('file', {
       variant: 'primary',
-      child: 'file-lbl',
+      child: 'file_lbl',
       action: { event: { name: 'file', context: { category: { '@path': '/category' } } } },
     }),
-    Text('file-lbl', { text: 'Archivia' }),
+    Text('file_lbl', { text: 'Archivia' }),
   ],
 } satisfies Surface;
 
@@ -124,7 +124,7 @@ const form = {
     CheckBox('recurring', { label: 'Ricorrente', value: { '@path': '/recurring' } }),
     Button('file', {
       variant: 'primary',
-      child: 'file-lbl',
+      child: 'file_lbl',
       action: {
         event: {
           name: 'file',
@@ -137,7 +137,7 @@ const form = {
         },
       },
     }),
-    Text('file-lbl', { text: 'Archivia' }),
+    Text('file_lbl', { text: 'Archivia' }),
   ],
 } satisfies Surface;
 
@@ -223,7 +223,7 @@ test('ask() sends the same body for the surface built and the surface written', 
 
 test('the types refuse what the catalog refuses', () => {
   // @ts-expect-error a Button dispatches an action
-  Button('go', { child: 'go-lbl' });
+  Button('go', { child: 'go_lbl' });
   // @ts-expect-error a Card has one child, not children
   Card('c', { children: ['a'] });
   // @ts-expect-error a heading is Markdown: h4 is not a variant of Text

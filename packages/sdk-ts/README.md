@@ -134,8 +134,8 @@ const result = await nibify.ask(
     components: [
       Column('root', { children: ['title', 'ship'] }),
       Text('title', { text: '#### Ship v2.4.1 to production?' }),
-      Button('ship', { child: 'ship-label', action: { event: { name: 'ship' } } }),
-      Text('ship-label', { text: 'Ship it' }),
+      Button('ship', { child: 'ship_label', action: { event: { name: 'ship' } } }),
+      Text('ship_label', { text: 'Ship it' }),
     ],
   },
   {
