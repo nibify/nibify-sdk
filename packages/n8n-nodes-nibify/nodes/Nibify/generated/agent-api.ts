@@ -740,7 +740,7 @@ export interface components {
         dataModel: {
           [key: string]: unknown;
         };
-        /** @description The components, as a flat list, each one checked against the catalog. */
+        /** @description The components, as a flat list, each one checked against the catalog `https://nibify.app/catalogs/nibify/v2/catalog.json`, in A2UI v1.0. */
         components: {
           [key: string]: unknown;
         }[];
@@ -956,7 +956,7 @@ export interface components {
         dataModel: {
           [key: string]: unknown;
         };
-        /** @description The components, as a flat list, each one checked against the catalog. */
+        /** @description The components, as a flat list, each one checked against the catalog `https://nibify.app/catalogs/nibify/v2/catalog.json`, in A2UI v1.0. */
         components: {
           [key: string]: unknown;
         }[];
@@ -1101,7 +1101,7 @@ export interface operations {
           'application/json': components['schemas']['ApiErrorDto'];
         };
       };
-      /** @description `surface_invalid` names the component and property at fault, the `root` the renderer would not find, or the quick action whose `name` is not an action the surface dispatches; `idempotency_conflict` means this key was already used for a different request; `callback_url_invalid` means the `callbackUrl` is not a public `https` endpoint this API is willing to call; `invalid_request_body` is a malformed envelope. */
+      /** @description `surface_invalid` names the component and property at fault, what an A2UI v0.9 surface writes differently in v1.0, the `root` the renderer would not find, or the quick action whose `name` is not an action the surface dispatches; `idempotency_conflict` means this key was already used for a different request; `callback_url_invalid` means the `callbackUrl` is not a public `https` endpoint this API is willing to call; `invalid_request_body` is a malformed envelope. */
       422: {
         headers: {
           [name: string]: unknown;
@@ -1390,7 +1390,7 @@ export interface operations {
           'application/json': components['schemas']['ApiErrorDto'];
         };
       };
-      /** @description `surface_invalid` names the component and property at fault, the `root` the renderer would not find, or a surface that dispatches an action — which is a Request and belongs to `POST /v1/requests`. `invalid_request_body` is a malformed envelope, and it is also what a field of a Request sent here gets: `quickActions`, `expiresAt` and `callbackUrl` are refused by name rather than ignored, because a notification that silently dropped a `callbackUrl` would leave an agent waiting for a call that is never made. */
+      /** @description `surface_invalid` names the component and property at fault, what an A2UI v0.9 surface writes differently in v1.0, the `root` the renderer would not find, or a surface that dispatches an action — which is a Request and belongs to `POST /v1/requests`. `invalid_request_body` is a malformed envelope, and it is also what a field of a Request sent here gets: `quickActions`, `expiresAt` and `callbackUrl` are refused by name rather than ignored, because a notification that silently dropped a `callbackUrl` would leave an agent waiting for a call that is never made. */
       422: {
         headers: {
           [name: string]: unknown;
